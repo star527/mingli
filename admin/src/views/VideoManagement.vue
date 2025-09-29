@@ -150,7 +150,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { getVideoList, addVideo, updateVideo, deleteVideo, toggleVideoStatus, uploadCover } from '@/api'
+import { getVideoList, createVideo, updateVideo, deleteVideo, uploadCover } from '@/api'
 import { formatDateTime } from '@/utils/date'
 
 export default {
@@ -218,22 +218,139 @@ export default {
       ]
     }
     
+    // 模拟视频数据
+    const mockVideos = [
+      {
+        id: '1',
+        title: '投资入门指南',
+        categoryId: 1,
+        categoryName: '基础知识',
+        coverUrl: 'https://picsum.photos/seed/1/300/200',
+        videoUrl: 'https://example.com/video1.mp4',
+        description: '投资基础知识入门课程',
+        duration: 1200,
+        views: 1532,
+        likes: 324,
+        status: 1,
+        createdAt: '2024-01-15T08:30:00Z',
+        updatedAt: '2024-01-15T08:30:00Z'
+      },
+      {
+        id: '2',
+        title: '股票技术分析',
+        categoryId: 2,
+        categoryName: '进阶技巧',
+        coverUrl: 'https://picsum.photos/seed/2/300/200',
+        videoUrl: 'https://example.com/video2.mp4',
+        description: '深入讲解股票技术分析方法',
+        duration: 1800,
+        views: 2156,
+        likes: 478,
+        status: 1,
+        createdAt: '2024-01-16T10:20:00Z',
+        updatedAt: '2024-01-16T10:20:00Z'
+      },
+      {
+        id: '3',
+        title: '资产配置策略',
+        categoryId: 3,
+        categoryName: '实战策略',
+        coverUrl: 'https://picsum.photos/seed/3/300/200',
+        videoUrl: 'https://example.com/video3.mp4',
+        description: '如何进行科学的资产配置',
+        duration: 2100,
+        views: 1876,
+        likes: 392,
+        status: 1,
+        createdAt: '2024-01-17T14:15:00Z',
+        updatedAt: '2024-01-17T14:15:00Z'
+      },
+      {
+        id: '4',
+        title: '金融市场解读',
+        categoryId: 4,
+        categoryName: '行业解析',
+        coverUrl: 'https://picsum.photos/seed/4/300/200',
+        videoUrl: 'https://example.com/video4.mp4',
+        description: '当前金融市场趋势分析',
+        duration: 2400,
+        views: 3241,
+        likes: 689,
+        status: 1,
+        createdAt: '2024-01-18T09:45:00Z',
+        updatedAt: '2024-01-18T09:45:00Z'
+      },
+      {
+        id: '5',
+        title: '风险管理要点',
+        categoryId: 1,
+        categoryName: '基础知识',
+        coverUrl: 'https://picsum.photos/seed/5/300/200',
+        videoUrl: 'https://example.com/video5.mp4',
+        description: '投资过程中的风险管理方法',
+        duration: 1500,
+        views: 1789,
+        likes: 412,
+        status: 0,
+        createdAt: '2024-01-19T11:30:00Z',
+        updatedAt: '2024-01-19T11:30:00Z'
+      },
+      {
+        id: '6',
+        title: '基金投资技巧',
+        categoryId: 2,
+        categoryName: '进阶技巧',
+        coverUrl: 'https://picsum.photos/seed/6/300/200',
+        videoUrl: 'https://example.com/video6.mp4',
+        description: '如何选择优质基金产品',
+        duration: 1900,
+        views: 2345,
+        likes: 521,
+        status: 1,
+        createdAt: '2024-01-20T16:20:00Z',
+        updatedAt: '2024-01-20T16:20:00Z'
+      }
+    ]
+
     // 加载视频列表
     const loadVideoList = async () => {
       loading.value = true
       try {
-        const params = {
-          page: pagination.currentPage,
-          pageSize: pagination.pageSize,
-          keyword: searchForm.title,
-          category: searchForm.category,
-          status: searchForm.status
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 根据搜索条件过滤数据
+        let filteredVideos = [...mockVideos]
+        
+        // 按标题搜索
+        if (searchForm.title) {
+          filteredVideos = filteredVideos.filter(video => 
+            video.title.toLowerCase().includes(searchForm.title.toLowerCase())
+          )
         }
-        const response = await getVideoList(params)
-        if (response.code === 200) {
-          videoList.value = response.data.list
-          pagination.total = response.data.total
+        
+        // 按分类过滤
+        if (searchForm.category) {
+          filteredVideos = filteredVideos.filter(video => 
+            video.categoryId === parseInt(searchForm.category)
+          )
         }
+        
+        // 按状态过滤
+        if (searchForm.status !== '') {
+          filteredVideos = filteredVideos.filter(video => 
+            video.status === parseInt(searchForm.status)
+          )
+        }
+        
+        // 计算分页
+        pagination.total = filteredVideos.length
+        const startIndex = (pagination.currentPage - 1) * pagination.pageSize
+        const endIndex = startIndex + pagination.pageSize
+        
+        // 更新视频列表
+        videoList.value = filteredVideos.slice(startIndex, endIndex)
+        
       } catch (error) {
         ElMessage.error('获取视频列表失败')
       } finally {
@@ -297,7 +414,7 @@ export default {
       try {
         const formData = { ...videoForm }
         if (dialogType.value === 'add') {
-          await addVideo(formData)
+          await createVideo(formData)
           ElMessage.success('新增视频成功')
         } else {
           await updateVideo(formData)

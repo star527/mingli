@@ -188,7 +188,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import { getOrderList, getFinancialStats, handleWithdrawal, exportFinanceData } from '@/api'
+import { getOrderList, getFinancialStats } from '@/api'
 import { formatDateTime } from '@/utils/date'
 import { formatMoney } from '@/utils/common'
 
@@ -345,13 +345,35 @@ export default {
       }
     }
     
-    // 导出数据
+    // 导出财务数据 - 模拟实现
     const handleExport = async () => {
       try {
-        await exportFinanceData(searchForm)
+        loading.value = true
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // 创建CSV内容
+        let csvContent = '订单ID,用户ID,用户名,订单金额,订单类型,订单状态,创建时间\n'
+        orderList.value.forEach(order => {
+          csvContent += `"${order.orderId}","${order.userId}","${order.username}","${order.amount}","${getTypeLabel(order.type)}","${getStatusLabel(order.status)}","${formatDateTime(order.createdAt)}"\n`
+        })
+        
+        // 创建下载链接
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.setAttribute('href', url)
+        link.setAttribute('download', `财务数据_${new Date().toLocaleDateString('zh-CN')}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
         ElMessage.success('导出成功')
       } catch (error) {
-        ElMessage.error('导出失败')
+        ElMessage.error('导出失败，请稍后重试')
+      } finally {
+        loading.value = false
       }
     }
     

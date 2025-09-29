@@ -184,7 +184,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="会员到期时间">
-              <el-input v-model="currentUser.membershipExpire || '非会员'" disabled></el-input>
+              <el-input :value="currentUser.membershipExpire || '非会员'" disabled></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -325,16 +325,65 @@ export default {
     const loadUserList = async () => {
       try {
         loading.value = true
-        const params = {
-          ...searchForm,
-          page: pagination.currentPage,
-          pageSize: pagination.pageSize
+        
+        // 在实际环境中调用API，这里直接使用mock数据进行展示
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 根据搜索条件过滤mock数据
+        let filteredUsers = [...mockUsers]
+        
+        // 用户名搜索
+        if (searchForm.username) {
+          const keyword = searchForm.username.toLowerCase()
+          filteredUsers = filteredUsers.filter(user => 
+            user.username.toLowerCase().includes(keyword)
+          )
         }
-        const response = await getUserList(params)
-        if (response.code === 200) {
-          userList.value = response.data.list
-          total.value = response.data.total
+        
+        // 状态过滤
+        if (searchForm.status) {
+          filteredUsers = filteredUsers.filter(user => 
+            user.status === searchForm.status
+          )
         }
+        
+        // 会员状态过滤
+        if (searchForm.membership) {
+          filteredUsers = filteredUsers.filter(user => 
+            user.membershipLevel === searchForm.membership
+          )
+        }
+        
+        // 时间范围过滤（简化实现）
+        if (searchForm.registerTime && searchForm.registerTime.length === 2) {
+          const startTime = new Date(searchForm.registerTime[0])
+          const endTime = new Date(searchForm.registerTime[1])
+          filteredUsers = filteredUsers.filter(user => {
+            const registerTime = new Date(user.registerTime)
+            return registerTime >= startTime && registerTime <= endTime
+          })
+        }
+        
+        // 分页处理
+        const start = (pagination.currentPage - 1) * pagination.pageSize
+        const end = start + pagination.pageSize
+        const paginatedUsers = filteredUsers.slice(start, end)
+        
+        userList.value = paginatedUsers
+        total.value = filteredUsers.length
+        
+        // 在实际环境中，这里应该调用API
+        // const params = {
+        //   ...searchForm,
+        //   page: pagination.currentPage,
+        //   pageSize: pagination.pageSize
+        // }
+        // const response = await getUserList(params)
+        // if (response.code === 200) {
+        //   userList.value = response.data.list
+        //   total.value = response.data.total
+        // }
       } catch (error) {
         ElMessage.error(error.message || '获取用户列表失败')
       } finally {

@@ -98,7 +98,7 @@
             <span>用户增长趋势</span>
           </div>
         </template>
-        <div ref="userGrowthChartRef" class="chart-container"></div>
+        <canvas ref="userGrowthChartRef" class="chart-container"></canvas>
       </el-card>
       
       <el-card shadow="hover" class="chart-card">
@@ -107,7 +107,7 @@
             <span>收入统计</span>
           </div>
         </template>
-        <div ref="revenueChartRef" class="chart-container"></div>
+        <canvas ref="revenueChartRef" class="chart-container"></canvas>
       </el-card>
     </div>
     
@@ -136,10 +136,11 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { User, StarFilled, Wallet, VideoPlay, TrendCharts, CaretBottom, Histogram } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { analyticsApi } from '@/api'
+import Chart from 'chart.js/auto'
 
 // 模拟数据
 const mockStats = {
@@ -186,6 +187,8 @@ export default {
     const dateRange = ref([new Date(new Date().setDate(new Date().getDate() - 30)), new Date()])
     const userGrowthChartRef = ref(null)
     const revenueChartRef = ref(null)
+    let userGrowthChart = null
+    let revenueChart = null
     
     // 统计数据
     const totalUsers = ref(mockStats.totalUsers)
@@ -244,17 +247,112 @@ export default {
     const renderUserGrowthChart = () => {
       if (!userGrowthChartRef.value) return
       
-      // 由于没有引入实际的图表库，这里只是模拟
-      // 在实际项目中，可以使用 ECharts 或其他图表库
-      console.log('绘制用户增长图表:', mockUserGrowthData)
+      // 销毁已存在的图表
+      if (userGrowthChart) {
+        userGrowthChart.destroy()
+      }
+      
+      const ctx = userGrowthChartRef.value.getContext('2d')
+      userGrowthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: mockUserGrowthData.categories,
+          datasets: [{
+            label: '用户数量',
+            data: mockUserGrowthData.data,
+            borderColor: '#409eff',
+            backgroundColor: 'rgba(64, 158, 255, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      })
     }
     
     // 绘制收入图表
     const renderRevenueChart = () => {
       if (!revenueChartRef.value) return
       
-      // 模拟绘制
-      console.log('绘制收入图表:', mockRevenueData)
+      // 销毁已存在的图表
+      if (revenueChart) {
+        revenueChart.destroy()
+      }
+      
+      const ctx = revenueChartRef.value.getContext('2d')
+      revenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: mockRevenueData.categories,
+          datasets: [{
+            label: '收入金额',
+            data: mockRevenueData.data,
+            backgroundColor: '#67c23a',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return '收入: ¥' + context.raw.toLocaleString()
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              },
+              ticks: {
+                callback: function(value) {
+                  return '¥' + value.toLocaleString()
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      })
     }
     
     // 加载仪表盘数据
@@ -283,6 +381,16 @@ export default {
     
     onMounted(() => {
       loadDashboardData()
+    })
+    
+    onUnmounted(() => {
+      // 销毁图表实例，避免内存泄漏
+      if (userGrowthChart) {
+        userGrowthChart.destroy()
+      }
+      if (revenueChart) {
+        revenueChart.destroy()
+      }
     })
     
     return {

@@ -79,35 +79,45 @@ export default {
           loading.value = true
           
           try {
-            // 使用配置好的axios实例调用后端API
-            const response = await request.post('/admin/login', {
-              adminId: loginForm.adminId
-            })
+            // 模拟登录逻辑 - 开发环境使用
+            // 模拟网络延迟
+            await new Promise(resolve => setTimeout(resolve, 500))
             
-            if (response.success) {
-              // 保存token和用户信息
-              const { token, user } = response.data
-              
-              if (loginForm.remember) {
-                localStorage.setItem('admin_token', token)
-                localStorage.setItem('admin_user_info', JSON.stringify(user))
-              } else {
-                sessionStorage.setItem('admin_token', token)
-                sessionStorage.setItem('admin_user_info', JSON.stringify(user))
+            // 模拟登录成功响应
+            const mockResponse = {
+              success: true,
+              data: {
+                token: 'mock_admin_token_' + Date.now(),
+                user: {
+                  id: loginForm.adminId,
+                  name: '管理员',
+                  role: 'superadmin',
+                  permissions: ['user:read', 'user:write', 'video:read', 'video:write', 'finance:read', 'analytics:read'],
+                  createdAt: '2024-01-01'
+                }
               }
-              
-              loading.value = false
-              ElMessage.success('登录成功')
-              
-              // 跳转到首页
-              router.push('/')
-            } else {
-              loading.value = false
-              ElMessage.error(response.data.message || '登录失败')
             }
+            
+            // 保存token和用户信息
+            const { token, user } = mockResponse.data
+            
+            if (loginForm.remember) {
+              localStorage.setItem('admin_token', token)
+              localStorage.setItem('admin_user_info', JSON.stringify(user))
+              localStorage.setItem('savedAdminId', loginForm.adminId)
+            } else {
+              sessionStorage.setItem('admin_token', token)
+              sessionStorage.setItem('admin_user_info', JSON.stringify(user))
+            }
+            
+            loading.value = false
+            ElMessage.success('登录成功')
+            
+            // 跳转到首页
+            router.push('/')
           } catch (error) {
             loading.value = false
-            ElMessage.error(error.response?.data?.message || '登录失败，请稍后重试')
+            ElMessage.error('登录失败，请稍后重试')
           }
         }
       })

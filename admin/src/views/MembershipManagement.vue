@@ -170,7 +170,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="有效期">
-              <el-input v-model="currentMember.duration + ' 天'" disabled></el-input>
+              <el-input :value="currentMember.duration + ' 天'" disabled></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -187,7 +187,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="支付金额">
-              <el-input v-model="'¥' + currentMember.amount" disabled></el-input>
+              <el-input :value="'¥' + currentMember.amount" disabled></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -225,7 +225,7 @@
           <el-switch v-model="renewForm.autoRenew" active-color="#13ce66" inactive-color="#dcdfe6"></el-switch>
         </el-form-item>
         <el-form-item label="续费金额">
-          <el-input v-model="'¥' + calculateRenewAmount" disabled></el-input>
+          <el-input :value="'¥' + calculateRenewAmount" disabled></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -386,12 +386,59 @@ export default {
     const loadMembershipList = async () => {
       loading.value = true
       
-      // 模拟API调用
-      setTimeout(() => {
-        membershipList.value = mockMemberships
-        total.value = mockMemberships.length
+      try {
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 根据搜索条件过滤数据
+        let filteredMembers = [...mockMemberships]
+        
+        // 按用户名搜索
+        if (searchForm.username) {
+          filteredMembers = filteredMembers.filter(member => 
+            member.username.toLowerCase().includes(searchForm.username.toLowerCase())
+          )
+        }
+        
+        // 按会员等级过滤
+        if (searchForm.level) {
+          filteredMembers = filteredMembers.filter(member => 
+            member.level === searchForm.level
+          )
+        }
+        
+        // 按会员状态过滤
+        if (searchForm.status) {
+          filteredMembers = filteredMembers.filter(member => 
+            member.status === searchForm.status
+          )
+        }
+        
+        // 按开通时间范围过滤
+        if (searchForm.startTime && searchForm.startTime.length === 2) {
+          const startDate = new Date(searchForm.startTime[0])
+          const endDate = new Date(searchForm.startTime[1])
+          endDate.setHours(23, 59, 59, 999)
+          
+          filteredMembers = filteredMembers.filter(member => {
+            const memberStartDate = new Date(member.startTime)
+            return memberStartDate >= startDate && memberStartDate <= endDate
+          })
+        }
+        
+        // 计算分页
+        total.value = filteredMembers.length
+        const startIndex = (pagination.currentPage - 1) * pagination.pageSize
+        const endIndex = startIndex + pagination.pageSize
+        
+        // 更新会员列表
+        membershipList.value = filteredMembers.slice(startIndex, endIndex)
+        
+      } catch (error) {
+        ElMessage.error('获取会员列表失败')
+      } finally {
         loading.value = false
-      }, 500)
+      }
       
       /* 真实API调用
       try {

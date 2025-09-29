@@ -178,8 +178,17 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import Chart from 'chart.js/auto'
-import { getDashboardStats } from '@/api'
-import { formatNumber, formatMoney } from '@/utils/common'
+// 导入必要的格式化函数
+const formatNumber = (num) => {
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万'
+  }
+  return num.toString()
+}
+
+const formatMoney = (num) => {
+  return '¥' + num.toFixed(2)
+}
 
 export default {
   name: 'DataAnalysis',
@@ -199,14 +208,14 @@ export default {
     let videoChart = null
     
     // 核心指标数据
-    const newUsers = ref(0)
-    const newUsersRate = ref(0)
-    const activeUsers = ref(0)
-    const activeUsersRate = ref(0)
-    const payingUsers = ref(0)
-    const payingUsersRate = ref(0)
-    const arpu = ref(0)
-    const arpuRate = ref(0)
+    const newUsers = ref(1256)
+    const newUsersRate = ref(12.5)
+    const activeUsers = ref(4589)
+    const activeUsersRate = ref(8.3)
+    const payingUsers = ref(789)
+    const payingUsersRate = ref(15.7)
+    const arpu = ref(234.5)
+    const arpuRate = ref(5.2)
     
     // 热门视频数据
     const hotVideos = ref([])
@@ -214,28 +223,26 @@ export default {
     // 用户留存数据
     const retentionRates = ref([])
     
-    // 加载仪表盘数据
+    // 加载仪表盘数据（使用模拟数据）
     const loadDashboardData = async () => {
       try {
-        const response = await getDashboardStats({ dateRange })
-        if (response.code === 200) {
-          const data = response.data
-          newUsers.value = data.newUsers || 0
-          newUsersRate.value = data.newUsersRate || 0
-          activeUsers.value = data.activeUsers || 0
-          activeUsersRate.value = data.activeUsersRate || 0
-          payingUsers.value = data.payingUsers || 0
-          payingUsersRate.value = data.payingUsersRate || 0
-          arpu.value = data.arpu || 0
-          arpuRate.value = data.arpuRate || 0
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 根据日期范围调整数据（这里简化处理，实际应该根据日期范围计算）
+        if (dateRange.value[0] && dateRange.value[1]) {
+          // 可以根据实际需求调整模拟数据
+          console.log('根据日期范围加载数据:', dateRange.value)
         }
+        
+        // 核心指标已经在定义时设置了默认值
       } catch (error) {
         ElMessage.error('获取仪表盘数据失败')
       }
     }
     
     // 用户增长图表使用模拟数据
-      const loadUserGrowthChart = () => {
+    const loadUserGrowthChart = () => {
         try {
           // 根据选择的图表类型设置不同的模拟数据
           const mockData = {
@@ -331,7 +338,7 @@ export default {
     }
     
     // 地域分布图表使用模拟数据
-      const loadRegionChart = () => {
+    const loadRegionChart = () => {
         try {
           // 使用模拟数据进行图表渲染
           const mockData = {
@@ -371,7 +378,7 @@ export default {
       }
     
     // 视频数据图表使用模拟数据
-      const loadVideoChart = () => {
+    const loadVideoChart = () => {
         try {
           // 根据选择的图表类型设置不同的模拟数据
           const mockData = {
@@ -431,16 +438,16 @@ export default {
       try {
         // 模拟热门视频数据
         hotVideos.value = [
-          { id: 1, title: 'Vue3实战教程', playCount: 125800, commentCount: 3560, shareCount: 1280 },
-          { id: 2, title: 'TypeScript高级技巧', playCount: 98500, commentCount: 2890, shareCount: 950 },
-          { id: 3, title: '前端性能优化实践', playCount: 87600, commentCount: 2340, shareCount: 820 },
-          { id: 4, title: 'Node.js全栈开发', playCount: 78900, commentCount: 1980, shareCount: 750 },
-          { id: 5, title: 'React Hooks详解', playCount: 65400, commentCount: 1780, shareCount: 630 },
-          { id: 6, title: 'CSS Grid布局教程', playCount: 54300, commentCount: 1340, shareCount: 520 },
-          { id: 7, title: 'Webpack5配置指南', playCount: 45600, commentCount: 1120, shareCount: 480 },
-          { id: 8, title: 'Flutter跨平台开发', playCount: 38900, commentCount: 980, shareCount: 420 },
-          { id: 9, title: 'GraphQL入门教程', playCount: 34500, commentCount: 850, shareCount: 380 },
-          { id: 10, title: '微前端架构实践', playCount: 29800, commentCount: 720, shareCount: 340 }
+          { id: 1, title: '投资入门指南', playCount: 15800, likeCount: 3250, completionRate: 0.85 },
+          { id: 2, title: '股票技术分析', playCount: 12500, likeCount: 2780, completionRate: 0.78 },
+          { id: 3, title: '资产配置策略', playCount: 10200, likeCount: 2150, completionRate: 0.82 },
+          { id: 4, title: '风险管理要点', playCount: 9800, likeCount: 1980, completionRate: 0.75 },
+          { id: 5, title: '基金投资技巧', playCount: 8700, likeCount: 1820, completionRate: 0.80 },
+          { id: 6, title: '财务报表解读', playCount: 7600, likeCount: 1540, completionRate: 0.72 },
+          { id: 7, title: '房地产投资指南', playCount: 6800, likeCount: 1320, completionRate: 0.76 },
+          { id: 8, title: '加密货币解析', playCount: 5900, likeCount: 1150, completionRate: 0.70 },
+          { id: 9, title: '退休规划策略', playCount: 5200, likeCount: 1080, completionRate: 0.83 },
+          { id: 10, title: '税务筹划技巧', playCount: 4800, likeCount: 950, completionRate: 0.71 }
         ]
       } catch (error) {
         ElMessage.error('加载热门视频失败')
@@ -452,10 +459,10 @@ export default {
       try {
         // 模拟用户留存率数据
         retentionRates.value = [
-          { period: '次日', rate: 0.58 },
-          { period: '7日', rate: 0.42 },
-          { period: '30日', rate: 0.28 },
-          { period: '90日', rate: 0.15 }
+          { period: '次日', rate: 0.58, count: 728, total: 1256 },
+          { period: '7日', rate: 0.42, count: 528, total: 1256 },
+          { period: '30日', rate: 0.28, count: 352, total: 1256 },
+          { period: '90日', rate: 0.15, count: 188, total: 1256 }
         ]
       } catch (error) {
         ElMessage.error('加载用户留存率失败')
