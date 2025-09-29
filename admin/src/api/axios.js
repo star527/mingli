@@ -30,22 +30,22 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data
-    // 根据后端返回的数据格式判断请求是否成功
-    // 支持多种成功格式：{success: true} 或 {code: 200}
-    if (res.success === false || (res.code && res.code !== 200)) {
-      // 可以在这里处理错误逻辑
-      console.error('请求失败:', res.message || res.error)
-      // 如果未授权，可以跳转到登录页
-      if (res.code === 401 || res.status === 401) {
-        localStorage.removeItem('admin_token')
-        sessionStorage.removeItem('admin_token')
-        localStorage.removeItem('admin_user_info')
-        sessionStorage.removeItem('admin_user_info')
-        window.location.href = '/login'
-      }
-      return Promise.reject(new Error(res.message || res.error || '请求失败'))
+    // 明确处理成功响应
+    if (res.success === true || res.code === 200) {
+      return res
     }
-    return res
+    
+    // 处理失败响应
+    console.error('请求失败:', res.message || res.error)
+    // 如果未授权，可以跳转到登录页
+    if (res.code === 401 || res.status === 401) {
+      localStorage.removeItem('admin_token')
+      sessionStorage.removeItem('admin_token')
+      localStorage.removeItem('admin_user_info')
+      sessionStorage.removeItem('admin_user_info')
+      window.location.href = '/login'
+    }
+    return Promise.reject(new Error(res.message || res.error || '请求失败'))
   },
   error => {
     console.error('响应错误:', error)

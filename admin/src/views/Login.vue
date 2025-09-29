@@ -84,9 +84,9 @@ export default {
               adminId: loginForm.adminId
             })
             
-            if (response.data.success) {
+            if (response.success) {
               // 保存token和用户信息
-              const { token, user } = response.data.data
+              const { token, user } = response.data
               
               if (loginForm.remember) {
                 localStorage.setItem('admin_token', token)
