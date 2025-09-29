@@ -128,8 +128,7 @@ class AuthMiddleware {
         const token = req.headers.authorization || req.query.token;
         const authData = await this.verifyToken(token);
         
-        // 检查是否是管理员（这里可以根据实际需求实现）
-        // 简化实现：检查用户ID是否在管理员列表中
+        // 检查是否是管理员
         const adminUsers = process.env.ADMIN_USERS ? process.env.ADMIN_USERS.split(',') : [];
         
         if (!adminUsers.includes(authData.userId)) {
@@ -154,6 +153,47 @@ class AuthMiddleware {
         });
       }
     };
+  }
+  
+  /**
+   * 管理员登录
+   */
+  async adminLogin(adminId) {
+    try {
+      // 检查是否是管理员ID
+      const adminUsers = process.env.ADMIN_USERS ? process.env.ADMIN_USERS.split(',') : [];
+      
+      if (!adminUsers.includes(adminId)) {
+        throw new Error('不是授权的管理员账号');
+      }
+      
+      // 从数据库获取管理员信息
+      let adminInfo = null;
+      if (this.userService) {
+        adminInfo = await this.userService.getUserById(adminId);
+      }
+      
+      // 如果数据库中没有管理员信息，创建基本信息
+      if (!adminInfo) {
+        adminInfo = {
+          id: adminId,
+          nickname: '系统管理员',
+          member_level: 99,
+          is_admin: true
+        };
+      }
+      
+      // 生成JWT令牌
+      const token = this.generateToken(adminId);
+      
+      return {
+        token,
+        user: adminInfo
+      };
+    } catch (error) {
+      console.error('管理员登录失败:', error);
+      throw error;
+    }
   }
 
   /**

@@ -325,6 +325,41 @@ router.get('/payments/:orderId/status',
 // ==================== 管理后台接口 ====================
 
 /**
+ * 管理员登录
+ * POST /api/admin/login
+ */
+router.post('/admin/login', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: '管理员ID不能为空'
+      });
+    }
+    
+    // 使用auth中间件进行管理员登录验证
+    const result = await authMiddleware.adminLogin(adminId);
+    
+    res.json({
+      success: true,
+      message: '登录成功',
+      data: {
+        token: result.token,
+        user: result.user
+      }
+    });
+  } catch (error) {
+    console.error('管理员登录失败:', error);
+    res.status(401).json({
+      success: false,
+      message: error.message || '登录失败'
+    });
+  }
+});
+
+/**
  * 获取统计数据
  * GET /api/admin/stats
  */
