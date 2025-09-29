@@ -224,6 +224,37 @@ router.get('/membership/video-access/:videoId',
   membershipController.checkVideoAccess
 );
 
+/**
+ * 获取会员信息（模拟实现）
+ * GET /api/membership/info
+ */
+router.get('/api/membership/info',
+  authMiddleware.requireAuth,
+  async (req, res) => {
+    try {
+      // 模拟返回会员信息
+      const membershipInfo = {
+        level: 'basic',
+        expireTime: '2024-12-31 23:59:59',
+        status: 'active',
+        autoRenew: true,
+        remainingDays: 180
+      };
+      
+      res.json({
+        success: true,
+        data: membershipInfo
+      });
+    } catch (error) {
+      console.error('获取会员信息失败:', error);
+      res.status(500).json({
+        success: false,
+        message: '获取会员信息失败'
+      });
+    }
+  }
+);
+
 // ==================== 视频课程接口 ====================
 
 /**
@@ -420,6 +451,65 @@ router.put('/admin/videos/:videoId',
 router.get('/admin/orders',
   authMiddleware.requireAdmin,
   adminController.getOrderList
+);
+
+// ==================== 文件上传接口 ====================
+
+/**
+ * 上传图片（用于视频封面等）
+ * POST /api/upload/image
+ */
+router.post('/upload/image',
+  authMiddleware.requireAuth,
+  authMiddleware.requireAdmin,
+  async (req, res) => {
+    try {
+      // 模拟图片上传，返回一个mock的URL
+      // 实际项目中应该使用multer等中间件处理文件上传
+      const mockImageUrl = 'https://example.com/uploads/' + Date.now() + '.jpg';
+      
+      res.json({
+        success: true,
+        data: {
+          url: mockImageUrl
+        }
+      });
+    } catch (error) {
+      console.error('上传图片失败:', error);
+      res.status(500).json({
+        success: false,
+        message: '上传图片失败'
+      });
+    }
+  }
+);
+
+/**
+ * 上传视频文件
+ * POST /api/upload/video
+ */
+router.post('/upload/video',
+  authMiddleware.requireAuth,
+  authMiddleware.requireAdmin,
+  async (req, res) => {
+    try {
+      // 模拟视频上传，返回一个mock的URL
+      const mockVideoUrl = 'https://example.com/uploads/' + Date.now() + '.mp4';
+      
+      res.json({
+        success: true,
+        data: {
+          url: mockVideoUrl
+        }
+      });
+    } catch (error) {
+      console.error('上传视频失败:', error);
+      res.status(500).json({
+        success: false,
+        message: '上传视频失败'
+      });
+    }
+  }
 );
 
 // ==================== 工具接口 ====================
