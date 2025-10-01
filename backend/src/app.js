@@ -54,7 +54,8 @@ class App {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     
     // 静态文件服务（用于视频、图片等）
-    this.app.use('/uploads', express.static('uploads'));
+    const path = require('path');
+    this.app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
   }
 
   /**

@@ -4,7 +4,7 @@ const config = require('../config/appConfig');
 
 // 确保临时上传目录存在
 const fs = require('fs');
-const tempDir = path.join(__dirname, '../../uploads/temp');
+const tempDir = path.join(__dirname, '../../public/uploads/temp');
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }

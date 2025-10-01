@@ -185,12 +185,11 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Download } from '@element-plus/icons-vue'
-import { getOrderList, getFinancialStats } from '@/api'
-import { formatDateTime } from '@/utils/date'
-import { formatMoney } from '@/utils/common'
+  import { ref, reactive, onMounted } from 'vue'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { Download } from '@element-plus/icons-vue'
+  import { formatDateTime } from '@/utils/date'
+  import { formatMoney } from '@/utils/common'
 
 export default {
   name: 'FinanceManagement',
@@ -251,39 +250,132 @@ export default {
       ]
     }
     
-    // 加载统计数据
+    // 模拟财务数据
+    const mockFinanceData = [
+      {
+        id: 'FIN202401250001',
+        userId: '1001',
+        username: '张三',
+        type: 1,
+        orderNo: 'ORDER202401250001',
+        amount: 199.00,
+        status: 1,
+        paymentMethod: '支付宝',
+        createdAt: '2024-01-25T08:30:00Z',
+        completedAt: '2024-01-25T08:30:10Z',
+        remark: 'VIP会员月卡'
+      },
+      {
+        id: 'FIN202401250002',
+        userId: '1002',
+        username: '李四',
+        type: 2,
+        orderNo: 'ORDER202401250002',
+        amount: 299.00,
+        status: 1,
+        paymentMethod: '微信支付',
+        createdAt: '2024-01-25T09:15:00Z',
+        completedAt: '2024-01-25T09:15:05Z',
+        remark: 'VIP会员季卡'
+      },
+      {
+        id: 'FIN202401250003',
+        userId: '1003',
+        username: '王五',
+        type: 3,
+        orderNo: 'ORDER202401250003',
+        amount: 399.00,
+        status: 1,
+        paymentMethod: '支付宝',
+        createdAt: '2024-01-25T10:20:00Z',
+        completedAt: '2024-01-25T10:20:08Z',
+        remark: '高级投资课程'
+      },
+      {
+        id: 'FIN202401250004',
+        userId: '1004',
+        username: '赵六',
+        type: 4,
+        orderNo: 'ORDER202401250004',
+        amount: 500.00,
+        status: 2,
+        paymentMethod: '银行卡',
+        createdAt: '2024-01-25T11:45:00Z',
+        remark: '佣金提现'
+      },
+      {
+        id: 'FIN202401250005',
+        userId: '1005',
+        username: '钱七',
+        type: 3,
+        orderNo: 'ORDER202401250005',
+        amount: 199.00,
+        status: 0,
+        paymentMethod: '支付宝',
+        createdAt: '2024-01-25T13:30:00Z',
+        remark: '基础理财课程'
+      }
+    ]
+    
+    // 加载统计数据 - 使用模拟数据
     const loadFinanceStats = async () => {
       try {
-        const response = await getFinancialStats()
-        const stats = response.data
-        todayIncome.value = stats.todayIncome || 0
-        todayIncomeRate.value = stats.todayIncomeRate || 0
-        monthIncome.value = stats.monthIncome || 0
-        monthIncomeRate.value = stats.monthIncomeRate || 0
-        yearIncome.value = stats.yearIncome || 0
-        totalOrders.value = stats.totalOrders || 0
-        pendingWithdrawals.value = stats.pendingWithdrawals || 0
-        pendingWithdrawalsCount.value = stats.pendingWithdrawalsCount || 0
+        // 模拟API延迟
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 设置模拟统计数据
+        todayIncome.value = 5860.50
+        todayIncomeRate.value = 12.3
+        monthIncome.value = 95800.75
+        monthIncomeRate.value = 8.5
+        yearIncome.value = 1256000.20
+        totalOrders.value = 8572
+        pendingWithdrawals.value = 12500.00
+        pendingWithdrawalsCount.value = 8
       } catch (error) {
         ElMessage.error('获取统计数据失败')
       }
     }
     
-    // 加载财务列表
+    // 加载财务列表 - 使用模拟数据
     const loadFinanceList = async () => {
       loading.value = true
       try {
-        const params = {
-          page: pagination.currentPage,
-          pageSize: pagination.pageSize,
-          type: searchForm.type,
-          status: searchForm.status,
-          startDate: searchForm.dateRange[0] || undefined,
-          endDate: searchForm.dateRange[1] || undefined
+        // 模拟API延迟
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 根据搜索条件过滤数据
+        let filteredData = [...mockFinanceData]
+        
+        // 按类型过滤
+        if (searchForm.type) {
+          filteredData = filteredData.filter(item => item.type === parseInt(searchForm.type))
         }
-        const response = await getOrderList(params)
-        financeList.value = response.data.list
-        pagination.total = response.data.total
+        
+        // 按状态过滤
+        if (searchForm.status) {
+          filteredData = filteredData.filter(item => item.status === parseInt(searchForm.status))
+        }
+        
+        // 按日期范围过滤
+        if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+          const startDate = new Date(searchForm.dateRange[0])
+          const endDate = new Date(searchForm.dateRange[1])
+          endDate.setHours(23, 59, 59, 999)
+          
+          filteredData = filteredData.filter(item => {
+            const itemDate = new Date(item.createdAt)
+            return itemDate >= startDate && itemDate <= endDate
+          })
+        }
+        
+        // 计算分页
+        pagination.total = filteredData.length
+        const startIndex = (pagination.currentPage - 1) * pagination.pageSize
+        const endIndex = startIndex + pagination.pageSize
+        
+        // 更新列表数据
+        financeList.value = filteredData.slice(startIndex, endIndex)
       } catch (error) {
         ElMessage.error('获取财务列表失败')
       } finally {

@@ -15,8 +15,8 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:3000', // 后端API地址
-        changeOrigin: true,
-        rewrite: (path) => path // 不再移除/api前缀，因为后端API路径已经包含/api
+        changeOrigin: true
+        // 保留/api前缀，因为后端API路径需要这个前缀
       }
     }
   },

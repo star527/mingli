@@ -22,7 +22,7 @@ class StorageService {
     });
     
     // 本地临时目录
-    this.tempDir = path.resolve(__dirname, '../../temp');
+    this.tempDir = path.resolve(__dirname, '../../public/uploads/temp');
     
     // 确保临时目录存在
     if (!fs.existsSync(this.tempDir)) {
@@ -215,6 +215,55 @@ class StorageService {
   }
 
   /**
+   * 获取视频时长（秒）
+   * @param {string} videoPath - 视频文件路径
+   * @returns {Promise<number>} - 视频时长（秒）
+   */
+  async getVideoDuration(videoPath) {
+    try {
+      // 使用ffprobe获取视频元数据
+      const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`;
+      const { stdout } = await execPromise(cmd);
+      
+      // 解析时长（秒）并转换为整数
+      const duration = parseFloat(stdout.trim());
+      
+      if (isNaN(duration) || duration <= 0) {
+        throw new Error('无法获取视频时长');
+      }
+      
+      return Math.round(duration);
+    } catch (error) {
+      console.error('获取视频时长失败:', error);
+      throw new Error('获取视频时长失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 从OSS获取视频并计算时长
+   * @param {string} ossPath - OSS上的视频路径
+   * @returns {Promise<number>} - 视频时长（秒）
+   */
+  async getVideoDurationFromOSS(ossPath) {
+    try {
+      // 下载视频到临时文件
+      const tempFilePath = path.join(this.tempDir, `temp_${Date.now()}.mp4`);
+      await this.client.get(ossPath, tempFilePath);
+      
+      // 获取时长
+      const duration = await this.getVideoDuration(tempFilePath);
+      
+      // 清理临时文件
+      this._cleanupTempFiles([tempFilePath]);
+      
+      return duration;
+    } catch (error) {
+      console.error('从OSS获取视频时长失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 清理临时文件
    */
   _cleanupTempFiles(paths) {
@@ -247,15 +296,30 @@ class StorageService {
   }
 
   /**
-   * 删除视频文件
+   * 删除视频文件 - 支持本地文件系统
    */
-  async deleteVideo(ossPath) {
+  async deleteVideo(filePath) {
     try {
-      await this.client.delete(ossPath);
-      return { success: true };
+      // 构建完整的本地文件路径（在public/uploads目录下）
+      const uploadDir = path.resolve(__dirname, '../../public/uploads');
+      const fullFilePath = path.join(uploadDir, filePath);
+      
+      console.log(`[STORAGE SERVICE] 尝试删除本地文件: ${fullFilePath}`);
+      
+      // 检查文件是否存在
+      if (fs.existsSync(fullFilePath)) {
+        // 删除文件
+        fs.unlinkSync(fullFilePath);
+        console.log(`[STORAGE SERVICE] 本地文件删除成功: ${fullFilePath}`);
+        return { success: true };
+      } else {
+        console.warn(`[STORAGE SERVICE] 文件不存在，跳过删除: ${fullFilePath}`);
+        return { success: true, message: '文件不存在，跳过删除' };
+      }
     } catch (error) {
-      console.error('删除视频文件失败:', error);
-      throw error;
+      console.error('删除文件失败:', error);
+      // 不抛出错误，允许数据库记录删除继续
+      return { success: false, error: error.message };
     }
   }
 }

@@ -12,6 +12,7 @@ class Database {
     this.db = null;
     // 使用绝对路径确保一致性
     this.dbPath = path.resolve(__dirname, '../../data/mingli.db');
+    this.SQL = null;
     
     // 确保数据目录存在
     const dataDir = path.dirname(this.dbPath);
@@ -26,23 +27,37 @@ class Database {
    */
   async createPool() {
     try {
-      const SQL = await initSqlJs();
+      this.SQL = await initSqlJs();
       
       // 尝试从文件加载现有数据库，如果不存在则创建新数据库
       let data = null;
       try {
-        const fileBuffer = fs.readFileSync(this.dbPath);
-        data = new Uint8Array(fileBuffer);
+        if (fs.existsSync(this.dbPath)) {
+          const fileBuffer = fs.readFileSync(this.dbPath);
+          data = new Uint8Array(fileBuffer);
+          console.log(`✅ 成功加载数据库文件，大小: ${(fileBuffer.length / 1024).toFixed(2)} KB`);
+        } else {
+          console.log('📝 数据库文件不存在，将创建新数据库');
+        }
       } catch (err) {
-        // 文件不存在，将创建新数据库
-        console.log('📝 创建新的SQLite数据库文件');
+        console.error('⚠️ 读取数据库文件出错，将创建新数据库:', err.message);
       }
       
-      this.db = new SQL.Database(data);
-      console.log('✅ SQLite数据库连接成功');
+      this.db = new this.SQL.Database(data);
       
-      // 启用外键约束
+      // 设置全局引用，使其他模块可以直接访问数据库实例
+      global.dbInstance = this;
+      console.log('✅ SQLite数据库连接成功并设置了全局引用');
+      
+      // 启用外键约束和WAL模式以提高性能
       this.db.run('PRAGMA foreign_keys = ON');
+      this.db.run('PRAGMA journal_mode = WAL');
+      
+      // 初始化必要的表结构（如果不存在）
+      await this.initializeTables();
+      
+      // 设置定期保存数据到文件的定时器
+      this.setupAutoSave();
       
       return this.db;
     } catch (error) {
@@ -50,7 +65,122 @@ class Database {
       throw error;
     }
   }
-
+  
+  /**
+   * 初始化必要的表结构
+   */
+  async initializeTables() {
+    try {
+      console.log('🔧 检查并初始化必要的表结构...');
+      
+      // 检查表是否存在
+      const tablesResult = this.db.exec('SELECT name FROM sqlite_master WHERE type="table"');
+      const existingTables = new Set();
+      
+      if (tablesResult.length > 0 && tablesResult[0].values) {
+        tablesResult[0].values.forEach(row => {
+          if (row[0]) existingTables.add(row[0]);
+        });
+      }
+      
+      console.log(`📋 现有表: ${Array.from(existingTables).join(', ')}`);
+      
+      // 如果videos表不存在，创建它
+      if (!existingTables.has('videos')) {
+        console.log('⚠️ videos表不存在，正在创建...');
+        const createVideosTable = `
+          CREATE TABLE IF NOT EXISTS videos (
+            id VARCHAR(64) PRIMARY KEY COMMENT '视频ID',
+            title VARCHAR(200) NOT NULL COMMENT '视频标题',
+            description TEXT COMMENT '视频描述',
+            category VARCHAR(50) NOT NULL COMMENT '分类',
+            
+            -- 视频信息
+            duration INT COMMENT '视频时长(秒)',
+            file_size BIGINT COMMENT '文件大小(字节)',
+            storage_path VARCHAR(500) COMMENT '存储路径',
+            play_url VARCHAR(500) COMMENT '播放地址',
+            thumbnail_url VARCHAR(500) COMMENT '缩略图',
+            
+            -- 业务信息
+            is_premium TINYINT DEFAULT 0 COMMENT '是否会员视频',
+            price DECIMAL(10,2) DEFAULT 0 COMMENT '价格',
+            status VARCHAR(20) DEFAULT 'active' COMMENT '状态：active/inactive',
+            
+            -- 统计信息
+            view_count INT DEFAULT 0 COMMENT '播放次数',
+            like_count INT DEFAULT 0 COMMENT '点赞数',
+            share_count INT DEFAULT 0 COMMENT '分享数',
+            
+            -- 扩展信息
+            chapters TEXT COMMENT '章节信息(JSON)',
+            available_qualities TEXT COMMENT '可用画质(JSON)',
+            transcoded_urls TEXT COMMENT '转码后的URLs(JSON)',
+            
+            -- 关联信息
+            creator_id VARCHAR(64) COMMENT '创建者ID',
+            
+            -- 时间戳
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间'
+          ) COMMENT '视频课程表';
+        `;
+        this.db.run(createVideosTable);
+        console.log('✅ videos表创建成功');
+        
+        // 保存更改到文件
+        this.saveDatabase();
+      }
+      
+      console.log('✅ 表结构检查完成');
+    } catch (error) {
+      console.error('❌ 初始化表结构失败:', error.message);
+    }
+  }
+  
+  /**
+   * 设置自动保存定时器
+   */
+  setupAutoSave() {
+    // 每30秒自动保存一次
+    setInterval(() => {
+      this.saveDatabase();
+    }, 30000);
+    
+    console.log('⏱️  数据库自动保存已设置（每30秒）');
+    
+    // 在进程退出前保存数据
+    process.on('exit', () => {
+      console.log('💾 进程退出，正在保存数据库...');
+      this.saveDatabase();
+    });
+    
+    // 在收到SIGINT信号（Ctrl+C）时保存数据
+    process.on('SIGINT', () => {
+      console.log('💾 收到中断信号，正在保存数据库...');
+      this.saveDatabase();
+      process.exit(0);
+    });
+  }
+  
+  /**
+   * 将数据库保存到文件
+   */
+  saveDatabase() {
+    try {
+      if (this.db && this.SQL) {
+        const data = this.db.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(this.dbPath, buffer);
+        console.log(`💾 数据库已保存到文件，大小: ${(buffer.length / 1024).toFixed(2)} KB`);
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ 保存数据库失败:', error.message);
+    }
+    return false;
+  }
+  
   /**
    * 获取数据库连接
    */
@@ -69,24 +199,47 @@ class Database {
     try {
       const db = await this.getConnection();
       
-      // sql.js使用?作为参数占位符
-      const stmt = db.prepare(sql);
+      // 检查SQL语句类型，区分SELECT查询和修改操作
+      const isSelectQuery = sql.trim().toUpperCase().startsWith('SELECT');
       
-      // 绑定参数（如果有的话）
-      if (params.length > 0) {
-        stmt.bind(params);
+      if (isSelectQuery) {
+        // 处理SELECT查询
+        const stmt = db.prepare(sql);
+        
+        // 绑定参数
+        if (params.length > 0) {
+          stmt.bind(params);
+        }
+        
+        // 获取所有行
+        const rows = [];
+        while (stmt.step()) {
+          rows.push(stmt.getAsObject());
+        }
+        
+        // 释放语句
+        stmt.free();
+        
+        return rows;
+      } else {
+        // 处理INSERT、UPDATE、DELETE等修改操作
+        // 对于修改操作，使用run方法执行
+        const stmt = db.prepare(sql);
+        
+        // 绑定参数
+        if (params.length > 0) {
+          stmt.bind(params);
+        }
+        
+        // 执行语句
+        const result = stmt.run();
+        
+        // 释放语句
+        stmt.free();
+        
+        // 对于修改操作，返回修改的行数等信息
+        return result;
       }
-      
-      // 获取所有行
-      const rows = [];
-      while (stmt.step()) {
-        rows.push(stmt.getAsObject());
-      }
-      
-      // 释放语句
-      stmt.free();
-      
-      return rows;
     } catch (error) {
       console.error('❌ 数据库查询失败:', error.message);
       console.error('SQL:', sql);

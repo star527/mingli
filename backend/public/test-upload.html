@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频上传测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 30px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            color: #444;
+            margin-top: 0;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        video {
+            max-width: 100%;
+            height: auto;
+            margin-top: 15px;
+            border: 1px solid #ddd;
+        }
+        .result {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .warning {
+            color: #ff9800;
+        }
+        .debug {
+            color: #2196F3;
+        }
+        .test-info {
+            background-color: #fffde7;
+            padding: 10px;
+            border-left: 4px solid #ffeb3b;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>视频上传测试工具</h1>
+    
+    <div class="test-info">
+        <strong>说明：</strong>此页面用于测试视频上传功能，帮助排查"net::ERR_ABORTED"错误。请按照以下步骤操作。
+    </div>
+
+    <!-- 测试1: 直接上传视频 -->
+    <div class="test-section">
+        <h2>测试1: 视频上传</h2>
+        <form id="uploadForm">
+            <input type="file" id="videoFile" accept="video/*" required>
+            <button type="submit">上传视频</button>
+        </form>
+        <div id="uploadResult" class="result">上传结果将显示在这里...</div>
+    </div>
+
+    <!-- 测试2: 播放上传的视频 -->
+    <div class="test-section">
+        <h2>测试2: 视频播放</h2>
+        <div>
+            <label for="videoUrl">视频URL:</label>
+            <input type="text" id="videoUrl" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+            <button id="playButton">测试播放</button>
+        </div>
+        <div id="videoContainer">
+            <video id="testVideo" controls></video>
+        </div>
+        <div id="playResult" class="result">播放结果将显示在这里...</div>
+    </div>
+
+    <!-- 测试3: 验证文件是否存在 -->
+    <div class="test-section">
+        <h2>测试3: 验证文件</h2>
+        <div>
+            <label for="fileName">文件名:</label>
+            <input type="text" id="fileName" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+            <button id="checkButton">检查文件</button>
+        </div>
+        <div id="checkResult" class="result">检查结果将显示在这里...</div>
+    </div>
+
+    <script>
+        // 服务器地址
+        const SERVER_URL = 'http://localhost:3000';
+        
+        // 测试1: 上传视频
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('videoFile');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<span class="error">请选择视频文件</span>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `<span class="debug">正在上传文件: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)</span>`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch(`${SERVER_URL}/api/upload/video`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.code === 200) {
+                    const videoUrl = data.data.url;
+                    resultDiv.innerHTML = `
+                        <span class="success">上传成功!</span>\n
+                        原始文件名: ${file.name}\n
+                        服务器文件名: ${videoUrl.split('/').pop()}\n
+                        视频URL: ${videoUrl}\n
+                        完整访问地址: ${SERVER_URL}${videoUrl}
+                    `;
+                    
+                    // 自动填充播放测试表单
+                    document.getElementById('videoUrl').value = `${SERVER_URL}${videoUrl}`;
+                    document.getElementById('fileName').value = videoUrl.split('/').pop();
+                } else {
+                    resultDiv.innerHTML = `<span class="error">上传失败: ${data.message || '未知错误'}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">上传出错: ${error.message}</span>`;
+            }
+        });
+        
+        // 测试2: 播放视频
+        document.getElementById('playButton').addEventListener('click', () => {
+            const videoUrl = document.getElementById('videoUrl').value;
+            const resultDiv = document.getElementById('playResult');
+            const videoElement = document.getElementById('testVideo');
+            
+            if (!videoUrl) {
+                resultDiv.innerHTML = '<span class="error">请输入视频URL</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `<span class="debug">正在尝试播放视频: ${videoUrl}</span>`;
+            
+            // 设置视频源
+            videoElement.src = videoUrl;
+            
+            // 监听视频事件
+            videoElement.onloadstart = () => {
+                resultDiv.innerHTML += '\n<span class="debug">开始加载视频...</span>';
+            };
+            
+            videoElement.onloadeddata = () => {
+                resultDiv.innerHTML += '\n<span class="success">视频加载成功!</span>';
+            };
+            
+            videoElement.onerror = (e) => {
+                resultDiv.innerHTML += `\n<span class="error">视频加载错误: ${e.target.error.message || '未知错误'}</span>`;
+                
+                // 常见错误分析
+                if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+                    resultDiv.innerHTML += '\n<span class="warning">可能的原因: 文件格式不支持或文件损坏</span>';
+                } else if (e.target.error.code === e.target.error.MEDIA_ERR_NETWORK) {
+                    resultDiv.innerHTML += '\n<span class="warning">可能的原因: 网络错误或文件不存在</span>';
+                    resultDiv.innerHTML += '\n<span class="warning">请确认文件已正确上传到服务器的 public/uploads 目录</span>';
+                }
+            };
+            
+            // 尝试播放
+            videoElement.load();
+        });
+        
+        // 测试3: 检查文件是否存在
+        document.getElementById('checkButton').addEventListener('click', async () => {
+            const fileName = document.getElementById('fileName').value;
+            const resultDiv = document.getElementById('checkResult');
+            
+            if (!fileName) {
+                resultDiv.innerHTML = '<span class="error">请输入文件名</span>';
+                return;
+            }
+            
+            const fileUrl = `${SERVER_URL}/uploads/${fileName}`;
+            resultDiv.innerHTML = `<span class="debug">正在检查文件: ${fileName}</span>`;
+            
+            try {
+                const response = await fetch(fileUrl, {
+                    method: 'HEAD' // 使用HEAD方法只获取头部信息，不下载文件
+                });
+                
+                if (response.ok) {
+                    const contentLength = response.headers.get('content-length') || '未知';
+                    const contentType = response.headers.get('content-type') || '未知';
+                    
+                    resultDiv.innerHTML = `
+                        <span class="success">文件存在!</span>\n
+                        文件名: ${fileName}\n
+                        访问地址: ${fileUrl}\n
+                        文件大小: ${contentLength} bytes\n
+                        内容类型: ${contentType}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">文件不存在或无法访问 (HTTP状态: ${response.status})</span>\n
+                        请检查以下几点:\n
+                        1. 文件名是否正确\n
+                        2. 文件是否已上传到服务器的 public/uploads 目录\n
+                        3. 服务器是否正确配置了静态文件服务
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">检查出错: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>

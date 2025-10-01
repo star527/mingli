@@ -3,7 +3,8 @@ import request from './axios'
 import { mockApi } from './mock'
 
 // 是否使用mock数据（开发环境使用，生产环境使用真实API）
-const USE_MOCK = import.meta.env.MODE === 'development'
+// 临时设置为false以使用真实API
+const USE_MOCK = false
 
 // 用户相关API
 export const userApi = {
@@ -42,16 +43,18 @@ export const videoApi = {
   // 删除视频
   deleteVideo: (id) => USE_MOCK ? Promise.resolve({ code: 200 }) : request.delete(`/admin/videos/${id}`),
   // 上传视频封面
-  uploadCover: (formData) => USE_MOCK ? Promise.resolve({ code: 200, data: { url: 'mock-cover-url.jpg' } }) : request.post('/admin/videos/upload-cover', formData, {
+  uploadCover: (formData) => USE_MOCK ? Promise.resolve({ code: 200, data: { url: 'mock-cover-url.jpg' } }) : request.post('/upload/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    timeout: 30000 // 增加超时时间到30秒
   }),
   // 上传视频文件
-  uploadVideo: (formData) => USE_MOCK ? Promise.resolve({ code: 200, data: { url: 'mock-video-url.mp4' } }) : request.post('/admin/videos/upload-video', formData, {
+  uploadVideo: (formData) => USE_MOCK ? Promise.resolve({ code: 200, data: { url: 'mock-video-url.mp4' } }) : request.post('/upload/video', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    timeout: 30000 // 增加超时时间到30秒
   })
 }
 
@@ -77,13 +80,10 @@ export const analyticsApi = {
   getRevenueStats: (params) => USE_MOCK ? Promise.resolve({ code: 200, data: {} }) : request.get('/admin/analytics/revenue-stats', { params })
 }
 
-// 登录相关API
+// 认证相关API
 export const authApi = {
-  // 登录
   login: (data) => USE_MOCK ? mockApi.login(data.username, data.password) : request.post('/admin/login', data),
-  // 登出
   logout: () => USE_MOCK ? Promise.resolve({ code: 200 }) : request.post('/admin/logout'),
-  // 获取当前用户信息
   getCurrentUser: () => USE_MOCK ? Promise.resolve({ code: 200, data: { id: 1, username: 'admin', role: 'admin' } }) : request.get('/admin/current-user')
 }
 

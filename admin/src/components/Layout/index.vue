@@ -48,6 +48,8 @@
             </el-button>
           </div>
           <div class="header-right">
+            <!-- API测试按钮 -->
+            <el-button type="primary" size="small" @click="testApi" style="margin-right: 10px;">测试API</el-button>
             <el-dropdown @command="handleDropdownCommand">
               <span class="user-info">
                 <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"></el-avatar>
@@ -154,6 +156,18 @@ export default {
         })
     }
     
+    // 测试API请求
+    const testApi = () => {
+      console.log('开始测试API请求...')
+      authApi.getCurrentUser()
+        .then(res => {
+          console.log('API请求测试完成，响应:', res)
+        })
+        .catch(err => {
+          console.error('API测试失败:', err)
+        })
+    }
+    
     onMounted(() => {
       fetchCurrentUser()
     })
@@ -164,7 +178,8 @@ export default {
       activeMenu,
       toggleSidebar,
       handleMenuSelect,
-      handleDropdownCommand
+      handleDropdownCommand,
+      testApi
     }
   }
 }

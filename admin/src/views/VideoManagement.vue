@@ -1,5 +1,6 @@
 <template>
-  <el-card shadow="never" class="management-card">
+  <div class="video-management-container"> <!-- 添加单个根元素 -->
+    <el-card shadow="never" class="management-card">
     <template #header>
       <div class="card-header">
         <span>视频管理</span>
@@ -37,7 +38,21 @@
       <el-table-column prop="id" label="视频ID" width="80" />
       <el-table-column label="封面" width="100">
         <template #default="scope">
-          <el-image :src="scope.row.coverUrl" fit="cover" :preview-src-list="[scope.row.coverUrl]" />
+          <div class="video-cover-container" @click="playVideo(scope.row)">
+            <!-- 使用预计算的封面URL，避免运行时错误处理和闪烁 -->
+            <el-image 
+              :key="`cover-${scope.row.id}`" 
+              :src="processVideoCover(scope.row)" 
+              fit="cover" 
+              :preview-src-list="[processVideoCover(scope.row)]"
+              :lazy="false"
+              :initial-preview="[]"
+              :show-upload-list="false"
+            />
+            <div class="play-icon-overlay">
+              <el-icon class="play-icon"><VideoPlay /></el-icon>
+            </div>
+          </div>
         </template>
       </el-table-column>
       <el-table-column prop="title" label="视频标题" min-width="200" show-overflow-tooltip />
@@ -103,9 +118,8 @@
         <el-form-item label="视频封面" prop="coverUrl">
           <el-upload
             class="avatar-uploader"
-            action="/api/upload/image"
+            :http-request="handleCustomCoverUpload"
             :show-file-list="false"
-            :on-success="handleCoverUploadSuccess"
             :before-upload="beforeUpload"
           >
             <img v-if="videoForm.coverUrl" :src="videoForm.coverUrl" class="avatar" />
@@ -115,14 +129,15 @@
         <el-form-item label="视频文件" prop="videoUrl">
           <el-upload
             class="upload-demo"
-            action="/api/upload/video"
-            :auto-upload="false"
+            :http-request="handleCustomVideoUpload"
+            :auto-upload="true"
             :file-list="fileList"
             accept=".mp4,.avi,.mov"
             :before-upload="beforeVideoUpload"
+            :on-change="handleVideoFileChange"
           >
             <template #trigger>
-              <el-button type="primary">选择视频文件</el-button>
+              <el-button type="primary">选择并上传视频</el-button>
             </template>
             <template #tip>
               <div class="el-upload__tip">
@@ -132,7 +147,7 @@
           </el-upload>
         </el-form-item>
         <el-form-item label="视频描述" prop="description">
-          <el-input v-model="videoForm.description" type="textarea" rows="3" placeholder="请输入视频描述" />
+          <el-input v-model="videoForm.description" type="textarea" :rows="3" placeholder="请输入视频描述" />
         </el-form-item>
         <el-form-item label="是否上架" prop="status">
           <el-switch v-model="videoForm.status" />
@@ -144,19 +159,50 @@
       </template>
     </el-dialog>
   </el-card>
+  
+  <!-- 视频播放对话框 -->
+  <el-dialog
+    v-model="videoDialogVisible"
+    :title="currentVideo?.title || '视频播放'"
+    width="80%"
+    :close-on-click-modal="true"
+    :close-on-press-escape="true"
+    destroy-on-close
+  >
+    <div class="video-dialog-content">
+      <video
+        id="current-video-player"
+        controls
+        class="video-player"
+        :src="currentVideo?.videoUrl"
+        style="width: 100%; max-height: 70vh;"
+      >
+        您的浏览器不支持HTML5视频播放
+      </video>
+      <div v-if="currentVideo" class="video-info">
+        <p><strong>分类：</strong>{{ currentVideo.categoryName }}</p>
+        <p><strong>时长：</strong>{{ formatDuration(currentVideo.duration) }}</p>
+        <p><strong>播放量：</strong>{{ currentVideo.playCount }}</p>
+        <p><strong>点赞数：</strong>{{ currentVideo.likeCount }}</p>
+      </div>
+    </div>
+  </el-dialog>
+  </div> <!-- 关闭根元素 -->
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { getVideoList, createVideo, updateVideo, deleteVideo, uploadCover } from '@/api'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ElMessage, ElMessageBox, ElPagination } from 'element-plus'
+import axios from 'axios'
+import { Plus, VideoPlay } from '@element-plus/icons-vue'
+import { getVideoList, createVideo, updateVideo, deleteVideo, uploadCover, uploadVideo } from '@/api'
 import { formatDateTime } from '@/utils/date'
 
 export default {
   name: 'VideoManagement',
   components: {
-    Plus
+    Plus,
+    VideoPlay
   },
   setup() {
     const loading = ref(false)
@@ -201,6 +247,9 @@ export default {
       { label: '行业解析', value: 4 }
     ])
     
+    // localStorage键名
+    const STORAGE_KEY = 'video_management_data'
+    
     // 表单验证规则
     const rules = {
       title: [
@@ -214,144 +263,77 @@ export default {
         { required: true, message: '请上传视频封面', trigger: 'blur' }
       ],
       videoUrl: [
-        { required: true, message: '请上传视频文件', trigger: 'blur' }
+        { 
+          required: true, 
+          message: '请上传视频文件', 
+          trigger: ['blur', 'change'],
+          validator: (rule, value, callback) => {
+            console.log('videoUrl验证器被调用，值:', value)
+            if (value && value.trim()) {
+              callback() // 验证通过
+            } else {
+              callback(new Error('请上传视频文件')) // 验证失败
+            }
+          }
+        }
       ]
     }
     
-    // 模拟视频数据
-    const mockVideos = [
-      {
-        id: '1',
-        title: '投资入门指南',
-        categoryId: 1,
-        categoryName: '基础知识',
-        coverUrl: 'https://picsum.photos/seed/1/300/200',
-        videoUrl: 'https://example.com/video1.mp4',
-        description: '投资基础知识入门课程',
-        duration: 1200,
-        views: 1532,
-        likes: 324,
-        status: 1,
-        createdAt: '2024-01-15T08:30:00Z',
-        updatedAt: '2024-01-15T08:30:00Z'
-      },
-      {
-        id: '2',
-        title: '股票技术分析',
-        categoryId: 2,
-        categoryName: '进阶技巧',
-        coverUrl: 'https://picsum.photos/seed/2/300/200',
-        videoUrl: 'https://example.com/video2.mp4',
-        description: '深入讲解股票技术分析方法',
-        duration: 1800,
-        views: 2156,
-        likes: 478,
-        status: 1,
-        createdAt: '2024-01-16T10:20:00Z',
-        updatedAt: '2024-01-16T10:20:00Z'
-      },
-      {
-        id: '3',
-        title: '资产配置策略',
-        categoryId: 3,
-        categoryName: '实战策略',
-        coverUrl: 'https://picsum.photos/seed/3/300/200',
-        videoUrl: 'https://example.com/video3.mp4',
-        description: '如何进行科学的资产配置',
-        duration: 2100,
-        views: 1876,
-        likes: 392,
-        status: 1,
-        createdAt: '2024-01-17T14:15:00Z',
-        updatedAt: '2024-01-17T14:15:00Z'
-      },
-      {
-        id: '4',
-        title: '金融市场解读',
-        categoryId: 4,
-        categoryName: '行业解析',
-        coverUrl: 'https://picsum.photos/seed/4/300/200',
-        videoUrl: 'https://example.com/video4.mp4',
-        description: '当前金融市场趋势分析',
-        duration: 2400,
-        views: 3241,
-        likes: 689,
-        status: 1,
-        createdAt: '2024-01-18T09:45:00Z',
-        updatedAt: '2024-01-18T09:45:00Z'
-      },
-      {
-        id: '5',
-        title: '风险管理要点',
-        categoryId: 1,
-        categoryName: '基础知识',
-        coverUrl: 'https://picsum.photos/seed/5/300/200',
-        videoUrl: 'https://example.com/video5.mp4',
-        description: '投资过程中的风险管理方法',
-        duration: 1500,
-        views: 1789,
-        likes: 412,
-        status: 0,
-        createdAt: '2024-01-19T11:30:00Z',
-        updatedAt: '2024-01-19T11:30:00Z'
-      },
-      {
-        id: '6',
-        title: '基金投资技巧',
-        categoryId: 2,
-        categoryName: '进阶技巧',
-        coverUrl: 'https://picsum.photos/seed/6/300/200',
-        videoUrl: 'https://example.com/video6.mp4',
-        description: '如何选择优质基金产品',
-        duration: 1900,
-        views: 2345,
-        likes: 521,
-        status: 1,
-        createdAt: '2024-01-20T16:20:00Z',
-        updatedAt: '2024-01-20T16:20:00Z'
+    // 从localStorage加载视频数据
+    const loadFromStorage = () => {
+      try {
+        const storedData = localStorage.getItem(STORAGE_KEY)
+        if (storedData) {
+          return JSON.parse(storedData)
+        }
+        return null
+      } catch (error) {
+        console.error('从localStorage加载数据失败:', error)
+        return null
       }
-    ]
-
+    }
+    
+    // 保存视频数据到localStorage
+    const saveToStorage = (data) => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      } catch (error) {
+        console.error('保存数据到localStorage失败:', error)
+      }
+    }
+    
     // 加载视频列表
     const loadVideoList = async () => {
       loading.value = true
       try {
-        // 模拟网络延迟
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // 根据搜索条件过滤数据
-        let filteredVideos = [...mockVideos]
-        
-        // 按标题搜索
-        if (searchForm.title) {
-          filteredVideos = filteredVideos.filter(video => 
-            video.title.toLowerCase().includes(searchForm.title.toLowerCase())
-          )
+        // 构建查询参数
+        const params = {
+          page: pagination.currentPage,
+          pageSize: pagination.pageSize,
+          title: searchForm.title,
+          categoryId: searchForm.category || undefined,
+          status: searchForm.status || undefined
         }
         
-        // 按分类过滤
-        if (searchForm.category) {
-          filteredVideos = filteredVideos.filter(video => 
-            video.categoryId === parseInt(searchForm.category)
-          )
+        // 调用后端API获取视频列表
+        const response = await getVideoList(params)
+        
+        if (response.code === 200 && response.data) {
+          // 更新视频列表和分页信息
+          videoList.value = response.data.list || []
+          pagination.total = response.data.total || 0
+          
+          // 确保每个视频都有categoryName
+          videoList.value = videoList.value.map(video => ({
+            ...video,
+            categoryName: categories.value.find(c => c.value === video.categoryId)?.label || '未分类'
+          }))
+        } else {
+          throw new Error('获取视频列表失败')
         }
-        
-        // 按状态过滤
-        if (searchForm.status !== '') {
-          filteredVideos = filteredVideos.filter(video => 
-            video.status === parseInt(searchForm.status)
-          )
-        }
-        
-        // 计算分页
-        pagination.total = filteredVideos.length
-        const startIndex = (pagination.currentPage - 1) * pagination.pageSize
-        const endIndex = startIndex + pagination.pageSize
-        
-        // 更新视频列表
-        videoList.value = filteredVideos.slice(startIndex, endIndex)
         
       } catch (error) {
+        console.error('加载视频列表失败:', error)
         ElMessage.error('获取视频列表失败')
       } finally {
         loading.value = false
@@ -407,58 +389,184 @@ export default {
       dialogVisible.value = true
     }
     
-    // 提交表单
+    // 提交表单 - 使用后端API实现数据持久化
     const handleSubmit = async () => {
-      await videoFormRef.value.validate()
+      console.log('准备提交表单，videoForm内容:', { ...videoForm })
+      console.log('videoForm.videoUrl值:', videoForm.videoUrl, '类型:', typeof videoForm.videoUrl)
+      
+      // 手动验证必填字段
+      if (!videoForm.title || !videoForm.title.trim()) {
+        ElMessage.error('请输入视频标题')
+        return
+      }
+      
+      if (!videoForm.categoryId) {
+        ElMessage.error('请选择视频分类')
+        return
+      }
+      
+      if (!videoForm.coverUrl || !videoForm.coverUrl.trim()) {
+        ElMessage.error('请上传视频封面')
+        return
+      }
+      
+      // 关键验证：只要videoUrl有值就允许提交
+      if (!videoForm.videoUrl || !videoForm.videoUrl.trim()) {
+        ElMessage.error('请上传视频文件')
+        return
+      }
+      
+      console.log('所有必填字段验证通过，开始提交表单')
+      
       loading.value = true
       try {
-        const formData = { ...videoForm }
-        if (dialogType.value === 'add') {
-          await createVideo(formData)
-          ElMessage.success('新增视频成功')
-        } else {
-          await updateVideo(formData)
-          ElMessage.success('编辑视频成功')
+        // 创建一个新的formData对象，将categoryId转换为category
+        const formData = {
+          title: videoForm.title,
+          category: videoForm.categoryId ? categories.value.find(c => c.value === videoForm.categoryId)?.label : '未分类',
+          coverUrl: videoForm.coverUrl,
+          videoUrl: videoForm.videoUrl,
+          description: videoForm.description,
+          status: videoForm.status,
+          duration: videoForm.duration || 0,
+          playCount: videoForm.playCount || 0,
+          likeCount: videoForm.likeCount || 0
         }
+        
+        // 如果是编辑模式，添加id
+        if (dialogType.value === 'edit') {
+          formData.id = videoForm.id
+        }
+        
+        console.log('提交给后端的数据:', formData)
+        
+        if (dialogType.value === 'add') {
+          // 调用创建视频API
+          const response = await createVideo(formData)
+          
+          if (response.code === 200) {
+            ElMessage.success('新增视频成功')
+            // 重新加载视频列表
+            await loadVideoList()
+          } else {
+            throw new Error('新增视频失败')
+          }
+        } else {
+          // 调用更新视频API
+          const response = await updateVideo(videoForm.id, formData)
+          
+          if (response.code === 200) {
+            ElMessage.success('编辑视频成功')
+            // 重新加载视频列表
+            await loadVideoList()
+          } else {
+            throw new Error('编辑视频失败')
+          }
+        }
+        
+        // 关闭对话框
         dialogVisible.value = false
-        loadVideoList()
       } catch (error) {
+        console.error('提交失败:', error)
         ElMessage.error(dialogType.value === 'add' ? '新增视频失败' : '编辑视频失败')
       } finally {
         loading.value = false
       }
     }
     
-    // 删除视频
+    // 删除视频 - 使用后端API实现
     const handleDeleteVideo = async (id) => {
       try {
-        await ElMessageBox.confirm('确定要删除这条视频吗？', '确认删除', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
-        await deleteVideo(id)
-        ElMessage.success('删除成功')
-        loadVideoList()
+        await ElMessageBox.confirm(
+          '确定要删除该视频吗？删除后将无法恢复。',
+          '删除确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        loading.value = true
+        console.log('开始删除视频，ID:', id)
+        
+        // 调用删除视频API
+        const response = await deleteVideo(id)
+        console.log('删除视频API响应:', response)
+        
+        if (response.code === 200) {
+          ElMessage.success('删除视频成功')
+          // 重新加载视频列表
+          await loadVideoList()
+        } else {
+          // 使用后端返回的错误信息，如果没有则使用默认信息
+          const errorMessage = response.message || response.data?.message || '删除视频失败'
+          console.error('删除视频失败:', response)
+          throw new Error(errorMessage)
+        }
       } catch (error) {
-        // 用户取消不提示错误
+        if (error !== 'cancel') {
+          console.error('删除视频失败:', error.message || error)
+          // 显示具体的错误信息给用户
+          ElMessage.error(error.message || '删除视频失败')
+        }
+      } finally {
+        loading.value = false
       }
     }
     
-    // 切换视频状态
+    // 切换视频状态（上架/下架）- 使用后端API实现
     const handleToggleStatus = async (id, status) => {
+      loading.value = true
       try {
-        await toggleVideoStatus(id, { status })
-        ElMessage.success(status === 1 ? '上架成功' : '下架成功')
-        loadVideoList()
+        console.log('开始切换视频状态，ID:', id, '新状态:', status)
+        
+        // 调用更新视频API，只更新状态字段
+        const response = await updateVideo(id, { status: status })
+        console.log('切换视频状态API响应:', response)
+        
+        if (response.code === 200) {
+          // 本地更新状态以提供即时反馈
+          const video = videoList.value.find(v => v.id === id)
+          if (video) {
+            video.status = status
+            console.log('本地视频状态已更新:', video.title, '状态:', status)
+          }
+          
+          const statusText = status === 1 ? '上架' : '下架'
+          ElMessage.success(`视频已${statusText}`)
+        } else {
+          // 使用后端返回的错误信息
+          const errorMessage = response.message || response.data?.message || '切换视频状态失败'
+          console.error('切换视频状态失败:', response)
+          throw new Error(errorMessage)
+        }
       } catch (error) {
-        ElMessage.error(status === 1 ? '上架失败' : '下架失败')
+        console.error('切换状态失败:', error.message || error)
+        // 显示具体的错误信息给用户
+        ElMessage.error(error.message || '切换状态失败')
+      } finally {
+        loading.value = false
       }
     }
     
-    // 封面上传成功
-    const handleCoverUploadSuccess = (response, file) => {
-      videoForm.coverUrl = response.data.url
+    // 自定义封面上传方法
+    const handleCustomCoverUpload = async (uploadData) => {
+      try {
+        const file = uploadData.file
+        const formData = new FormData()
+        formData.append('cover', file)
+        
+        const response = await uploadCover(formData)
+        videoForm.coverUrl = response.data.url
+        uploadData.onSuccess(response)
+      } catch (error) {
+        console.error('封面上传失败:', error)
+        // 提供更明确的错误信息，避免显示为Object
+        const errorMessage = error.response?.data?.message || error.message || '上传失败，请重试'
+        uploadData.onError(new Error(errorMessage))
+        ElMessage.error('封面上传失败: ' + errorMessage)
+      }
     }
     
     // 上传前校验
@@ -472,6 +580,66 @@ export default {
         ElMessage.error('上传图片大小不能超过 1MB！')
       }
       return isImage && isLt1M
+    }
+    
+    // 视频文件变化处理
+    const handleVideoFileChange = (file, fileList) => {
+      // 只保留最后选择的文件并更新到我们的响应式变量中
+      if (fileList.length > 0) {
+        const lastFile = fileList[fileList.length - 1]
+        fileList.value = [lastFile] // 直接设置为只包含最后一个文件的数组
+      }
+    }
+    
+    // 提交视频上传
+    const submitVideoUpload = () => {
+      if (fileList.value.length > 0) {
+        // 触发自定义上传
+        const uploadData = {
+          file: fileList.value[0].raw,
+          onSuccess: (response) => {
+            // 上传成功后必须更新videoForm.videoUrl，否则表单验证会失败
+            if (response && response.data && response.data.url) {
+              videoForm.videoUrl = response.data.url
+              ElMessage.success('视频上传成功，视频路径已设置')
+            } else {
+              ElMessage.error('视频上传成功但响应格式不正确')
+            }
+          },
+          onError: (error) => {
+            ElMessage.error('视频上传失败')
+          }
+        }
+        handleCustomVideoUpload(uploadData)
+      } else {
+        ElMessage.warning('请先选择视频文件')
+      }
+    }
+    
+    // 自定义视频上传方法 - 使用真实API
+    const handleCustomVideoUpload = async (uploadData) => {
+      try {
+        console.log('开始视频上传:', uploadData.file.name, '大小:', uploadData.file.size);
+        
+        const formData = new FormData()
+        formData.append('file', uploadData.file)
+        
+        // 调用真实的视频上传API
+        const response = await uploadVideo(formData)
+        
+        if (response.code === 200 && response.data && response.data.url) {
+          videoForm.videoUrl = response.data.url
+          console.log('视频上传成功，设置URL:', videoForm.videoUrl);
+          ElMessage.success('视频上传成功并已设置视频路径');
+          uploadData.onSuccess(response);
+        } else {
+          throw new Error('视频上传成功但响应格式不正确')
+        }
+      } catch (error) {
+        console.error('视频上传失败:', error);
+        ElMessage.error('视频上传失败: ' + (error.message || '未知错误'));
+        uploadData.onError(error);
+      }
     }
     
     // 视频上传前校验
@@ -493,6 +661,109 @@ export default {
       const mins = Math.floor(seconds / 60)
       const secs = seconds % 60
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    
+    // 常量定义 - 直接内联到方法中减少变量依赖
+    
+    // 处理视频封面的核心函数，完全预计算，避免运行时错误处理
+    const processVideoCover = (video) => {
+      // 直接内联SVG占位图，避免外部依赖
+      const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%2280%22 viewBox%3D%220 0 100 80%22%3E%3Crect width%3D%22100%22 height%3D%2280%22 fill%3D%22%23f5f5f5%22%3E%3C%2Frect%3E%3Ctext x%3D%2250%22 y%3D%2245%22 font-size%3D%2214%22 text-anchor%3D%22middle%22 fill%3D%22%23909399%22%3E视频封面%3C%2Ftext%3E%3C%2Fsvg%3E';
+      
+      // 1. 直接返回占位图，完全避免任何可能导致闪烁的URL加载
+      // 这是最稳定的解决方案，确保每个封面都显示占位图而不会尝试加载可能失败的图片
+      return DEFAULT_PLACEHOLDER;
+      
+      // 如果将来需要支持真实图片，可以取消下面的注释并注释掉上面的直接返回语句
+      /*
+      // 安全地获取封面URL，严格检查
+      const coverUrl = (video.coverUrl || video.thumbnail_url || '').trim();
+      
+      // 开发环境调试信息
+      if (process.env.NODE_ENV === 'development' && coverUrl) {
+        console.log('处理封面URL，视频ID:', video.id);
+      }
+      
+      // 严格验证URL格式，确保它是有效的图片URL且不是视频URL
+      const isVideoExt = (url) => {
+        const lowerUrl = url.toLowerCase();
+        return lowerUrl.includes('.mp4') || 
+               lowerUrl.includes('.avi') || 
+               lowerUrl.includes('.mov');
+      };
+      
+      // 只有符合严格条件的URL才会被使用，否则直接返回占位图
+      if (coverUrl && 
+          !isVideoExt(coverUrl) &&
+          (coverUrl.startsWith('http') || 
+           coverUrl.startsWith('/uploads/') || 
+           coverUrl.startsWith('data:image/'))) {
+        return coverUrl;
+      }
+      
+      return DEFAULT_PLACEHOLDER;
+      */
+    }
+    
+    // 播放视频相关状态
+    const videoDialogVisible = ref(false)
+    const currentVideo = ref(null)
+    
+    // 播放视频
+    const playVideo = (video) => {
+      try {
+        console.log('尝试播放视频，原始URL:', video.videoUrl);
+        
+        // 智能处理视频URL，确保正确指向后端服务
+        let backendVideoUrl;
+        
+        if (video.videoUrl) {
+          // 根据不同情况处理URL
+          if (video.videoUrl.startsWith('http')) {
+            // 如果已经是完整URL，直接使用
+            backendVideoUrl = video.videoUrl;
+          } else if (video.videoUrl.startsWith('/')) {
+            // 如果以/开头，添加域名
+            backendVideoUrl = `http://localhost:3000${video.videoUrl}`;
+          } else {
+            // 如果只是文件名，添加完整路径
+            backendVideoUrl = `http://localhost:3000/uploads/${video.videoUrl}`;
+          }
+        } else {
+          throw new Error('视频URL为空');
+        }
+        
+        console.log('构建的视频播放URL:', backendVideoUrl);
+          
+        // 创建包含正确视频URL的对象副本
+        currentVideo.value = {
+          ...video,
+          videoUrl: backendVideoUrl
+        };
+        
+        videoDialogVisible.value = true
+        
+        // 在下一个DOM更新周期后设置视频自动播放
+        nextTick(() => {
+          const videoElement = document.getElementById('current-video-player')
+          if (videoElement) {
+            // 监听错误事件
+            videoElement.onerror = (e) => {
+              console.error('视频加载错误:', e);
+              ElMessage.error('视频文件不存在或无法访问，请检查文件是否已正确上传');
+            };
+            
+            setTimeout(() => {
+              videoElement.play().catch(err => {
+                console.warn('视频自动播放被阻止:', err)
+              })
+            }, 100)
+          }
+        })
+      } catch (error) {
+        console.error('播放视频失败:', error);
+        ElMessage.error(`播放视频失败: ${error.message}`);
+      }
     }
     
     // 分页处理
@@ -525,6 +796,10 @@ export default {
       rules,
       formatDateTime,
       formatDuration,
+      playVideo,
+      videoDialogVisible,
+      currentVideo,
+      processVideoCover,
       handleSearch,
       handleReset,
       handleAddVideo,
@@ -532,9 +807,12 @@ export default {
       handleSubmit,
       handleDeleteVideo,
       handleToggleStatus,
-      handleCoverUploadSuccess,
+      handleCustomCoverUpload,
       beforeUpload,
       beforeVideoUpload,
+      handleVideoFileChange,
+      submitVideoUpload,
+      handleCustomVideoUpload,
       handleSizeChange,
       handleCurrentChange
     }
@@ -590,5 +868,72 @@ export default {
   width: 120px;
   height: 80px;
   display: block;
+}
+/* 视频播放器样式 */
+.video-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.video-info {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.video-info p {
+  margin: 5px 0;
+  color: #666;
+}
+
+/* 视频封面容器样式增强 */
+.video-cover-container {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  width: 100%;
+  height: 80px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.video-cover-container:hover {
+  transform: scale(1.05);
+}
+
+.play-icon-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-cover-container:hover .play-icon-overlay {
+  opacity: 1;
+}
+
+.play-icon {
+  color: white;
+  font-size: 16px;
+}
+
+.video-cover-container img {
+  width: 100%;
+  height: 100%;
+  transition: filter 0.3s ease;
+}
+
+.video-cover-container:hover img {
+  filter: brightness(0.8);
 }
 </style>
