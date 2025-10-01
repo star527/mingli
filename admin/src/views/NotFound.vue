@@ -2,7 +2,7 @@
   <div class="not-found-container">
     <div class="not-found-content">
       <el-result
-        icon="el-icon-warning"
+        icon="warning"
         title="404"
         sub-title="抱歉，您访问的页面不存在"
       >
