@@ -3,9 +3,12 @@
  * 处理管理后台相关的业务逻辑
  */
 
+// 引入数据库连接
+const db = require('../config/database');
+
 class AdminController {
   constructor() {
-    // 这里可以注入管理服务
+    // 数据库连接已通过require引入
   }
 
   /**
@@ -103,7 +106,393 @@ class AdminController {
       console.error('上传视频失败:', error);
       res.status(500).json({
         success: false,
-        message: '上传视频失败'
+        message: '上传视频失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 获取会员等级列表
+   */
+  async getMembershipLevels(req, res) {
+    try {
+      const { page = 1, pageSize = 10 } = req.query;
+      const limit = parseInt(pageSize);
+      const offset = (parseInt(page) - 1) * limit;
+      
+      // 查询总数
+      const [totalResult] = await db.execute('SELECT COUNT(*) as total FROM membership_levels');
+      const total = totalResult[0].total;
+      
+      // 查询分页数据
+      const [levels] = await db.execute(
+        'SELECT * FROM membership_levels ORDER BY sort_order ASC, created_at DESC LIMIT ? OFFSET ?',
+        [limit, offset]
+      );
+      
+      res.json({
+        code: 200,
+        data: {
+          items: levels,
+          total: total,
+          page: parseInt(page),
+          pageSize: limit
+        }
+      });
+    } catch (error) {
+      console.error('获取会员等级列表失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '获取会员等级列表失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 创建会员等级
+   */
+  async createMembershipLevel(req, res) {
+    try {
+      const { name, price, duration, description, benefits = '', sortOrder = 0 } = req.body;
+      
+      // 检查名称是否已存在
+      const [existing] = await db.execute(
+        'SELECT id FROM membership_levels WHERE name = ?',
+        [name]
+      );
+      
+      if (existing.length > 0) {
+        return res.status(400).json({
+          code: 400,
+          message: '会员等级名称已存在'
+        });
+      }
+      
+      // 插入新数据
+      const [result] = await db.execute(
+        'INSERT INTO membership_levels (name, price, duration, description, benefits, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, parseFloat(price), parseInt(duration), description, benefits, parseInt(sortOrder)]
+      );
+      
+      // 获取新创建的记录
+      const [newLevel] = await db.execute(
+        'SELECT * FROM membership_levels WHERE id = ?',
+        [result.insertId]
+      );
+      
+      res.json({
+        code: 200,
+        message: '创建成功',
+        data: newLevel[0]
+      });
+    } catch (error) {
+      console.error('创建会员等级失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '创建会员等级失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 更新会员等级
+   */
+  async updateMembershipLevel(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, price, duration, description, benefits, sortOrder } = req.body;
+      
+      // 检查记录是否存在
+      const [existing] = await db.execute(
+        'SELECT id FROM membership_levels WHERE id = ?',
+        [id]
+      );
+      
+      if (existing.length === 0) {
+        return res.status(404).json({
+          code: 404,
+          message: '会员等级不存在'
+        });
+      }
+      
+      // 检查名称是否已被其他记录使用
+      const [nameCheck] = await db.execute(
+        'SELECT id FROM membership_levels WHERE name = ? AND id != ?',
+        [name, id]
+      );
+      
+      if (nameCheck.length > 0) {
+        return res.status(400).json({
+          code: 400,
+          message: '会员等级名称已存在'
+        });
+      }
+      
+      // 更新数据
+      await db.execute(
+        'UPDATE membership_levels SET name = ?, price = ?, duration = ?, description = ?, benefits = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [name, parseFloat(price), parseInt(duration), description, benefits || '', parseInt(sortOrder) || 0, id]
+      );
+      
+      // 获取更新后的记录
+      const [updated] = await db.execute(
+        'SELECT * FROM membership_levels WHERE id = ?',
+        [id]
+      );
+      
+      res.json({
+        code: 200,
+        message: '更新成功',
+        data: updated[0]
+      });
+    } catch (error) {
+      console.error('更新会员等级失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '更新会员等级失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 删除会员等级
+   */
+  async deleteMembershipLevel(req, res) {
+    try {
+      const { id } = req.params;
+      
+      // 检查记录是否存在
+      const [existing] = await db.execute(
+        'SELECT id FROM membership_levels WHERE id = ?',
+        [id]
+      );
+      
+      if (existing.length === 0) {
+        return res.status(404).json({
+          code: 404,
+          message: '会员等级不存在'
+        });
+      }
+      
+      // 删除记录
+      await db.execute(
+        'DELETE FROM membership_levels WHERE id = ?',
+        [id]
+      );
+      
+      res.json({
+        code: 200,
+        message: '删除成功'
+      });
+    } catch (error) {
+      console.error('删除会员等级失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '删除会员等级失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 获取视频分类列表
+   */
+  async getVideoCategories(req, res) {
+    try {
+      const { page = 1, pageSize = 10 } = req.query;
+      const limit = parseInt(pageSize);
+      const offset = (parseInt(page) - 1) * limit;
+      
+      // 查询总数
+      const [totalResult] = await db.execute('SELECT COUNT(*) as total FROM video_categories');
+      const total = totalResult[0].total;
+      
+      // 查询分页数据
+      const [categories] = await db.execute(
+        'SELECT * FROM video_categories ORDER BY sort_order ASC, created_at DESC LIMIT ? OFFSET ?',
+        [limit, offset]
+      );
+      
+      res.json({
+        code: 200,
+        data: {
+          items: categories,
+          total: total,
+          page: parseInt(page),
+          pageSize: limit
+        }
+      });
+    } catch (error) {
+      console.error('获取视频分类列表失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '获取视频分类列表失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 创建视频分类
+   */
+  async createVideoCategory(req, res) {
+    try {
+      const { name, description, sortOrder = 0 } = req.body;
+      
+      // 检查名称是否已存在
+      const [existing] = await db.execute(
+        'SELECT id FROM video_categories WHERE name = ?',
+        [name]
+      );
+      
+      if (existing.length > 0) {
+        return res.status(400).json({
+          code: 400,
+          message: '视频分类名称已存在'
+        });
+      }
+      
+      // 插入新数据
+      const [result] = await db.execute(
+        'INSERT INTO video_categories (name, description, sort_order) VALUES (?, ?, ?)',
+        [name, description, parseInt(sortOrder)]
+      );
+      
+      // 获取新创建的记录
+      const [newCategory] = await db.execute(
+        'SELECT * FROM video_categories WHERE id = ?',
+        [result.insertId]
+      );
+      
+      res.json({
+        code: 200,
+        message: '创建成功',
+        data: newCategory[0]
+      });
+    } catch (error) {
+      console.error('创建视频分类失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '创建视频分类失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 更新视频分类
+   */
+  async updateVideoCategory(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, description, sortOrder } = req.body;
+      
+      // 检查记录是否存在
+      const [existing] = await db.execute(
+        'SELECT id FROM video_categories WHERE id = ?',
+        [id]
+      );
+      
+      if (existing.length === 0) {
+        return res.status(404).json({
+          code: 404,
+          message: '视频分类不存在'
+        });
+      }
+      
+      // 检查名称是否已被其他记录使用
+      const [nameCheck] = await db.execute(
+        'SELECT id FROM video_categories WHERE name = ? AND id != ?',
+        [name, id]
+      );
+      
+      if (nameCheck.length > 0) {
+        return res.status(400).json({
+          code: 400,
+          message: '视频分类名称已存在'
+        });
+      }
+      
+      // 更新数据
+      await db.execute(
+        'UPDATE video_categories SET name = ?, description = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [name, description, parseInt(sortOrder) || 0, id]
+      );
+      
+      // 获取更新后的记录
+      const [updated] = await db.execute(
+        'SELECT * FROM video_categories WHERE id = ?',
+        [id]
+      );
+      
+      res.json({
+        code: 200,
+        message: '更新成功',
+        data: updated[0]
+      });
+    } catch (error) {
+      console.error('更新视频分类失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '更新视频分类失败',
+        error: error.message
+      });
+    }
+  }
+  
+  /**
+   * 删除视频分类
+   */
+  async deleteVideoCategory(req, res) {
+    try {
+      const { id } = req.params;
+      
+      // 检查记录是否存在
+      const [existing] = await db.execute(
+        'SELECT id FROM video_categories WHERE id = ?',
+        [id]
+      );
+      
+      if (existing.length === 0) {
+        return res.status(404).json({
+          code: 404,
+          message: '视频分类不存在'
+        });
+      }
+      
+      // 检查是否有视频使用此分类
+      const [videos] = await db.execute(
+        'SELECT COUNT(*) as count FROM videos WHERE category = (SELECT name FROM video_categories WHERE id = ?)',
+        [id]
+      );
+      
+      if (videos[0].count > 0) {
+        return res.status(400).json({
+          code: 400,
+          message: `该分类下有 ${videos[0].count} 个视频，无法删除`
+        });
+      }
+      
+      // 删除记录
+      await db.execute(
+        'DELETE FROM video_categories WHERE id = ?',
+        [id]
+      );
+      
+      res.json({
+        code: 200,
+        message: '删除成功'
+      });
+    } catch (error) {
+      console.error('删除视频分类失败:', error);
+      res.status(500).json({
+        code: 500,
+        message: '删除视频分类失败',
+        error: error.message
       });
     }
   }

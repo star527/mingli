@@ -42,7 +42,7 @@
         
         <div class="login-tip">
           <p>💡 开发环境提示：</p>
-          <p>初始管理员ID: admin_001</p>
+          <p>初始管理员ID: 1</p>
         </div>
       </el-form>
     </div>
@@ -53,7 +53,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import request from '@/api/axios'
+import { authApi } from '@/api'
 
 export default {
   name: 'Login',
@@ -79,45 +79,37 @@ export default {
           loading.value = true
           
           try {
-            // 模拟登录逻辑 - 开发环境使用
-            // 模拟网络延迟
-            await new Promise(resolve => setTimeout(resolve, 500))
+            // 使用真实的API进行登录
+            const response = await authApi.login({
+              adminId: loginForm.adminId
+            })
             
-            // 模拟登录成功响应
-            const mockResponse = {
-              success: true,
-              data: {
-                token: 'mock_admin_token_' + Date.now(),
-                user: {
-                  id: loginForm.adminId,
-                  name: '管理员',
-                  role: 'superadmin',
-                  permissions: ['user:read', 'user:write', 'video:read', 'video:write', 'finance:read', 'analytics:read'],
-                  createdAt: '2024-01-01'
-                }
+            if (response.success) {
+              // 保存token和用户信息
+              const { token, user } = response.data
+              
+              if (loginForm.remember) {
+                localStorage.setItem('admin_token', token)
+                localStorage.setItem('admin_user_info', JSON.stringify(user))
+                localStorage.setItem('savedAdminId', loginForm.adminId)
+              } else {
+                sessionStorage.setItem('admin_token', token)
+                sessionStorage.setItem('admin_user_info', JSON.stringify(user))
               }
-            }
-            
-            // 保存token和用户信息
-            const { token, user } = mockResponse.data
-            
-            if (loginForm.remember) {
-              localStorage.setItem('admin_token', token)
-              localStorage.setItem('admin_user_info', JSON.stringify(user))
-              localStorage.setItem('savedAdminId', loginForm.adminId)
+              
+              loading.value = false
+              ElMessage.success('登录成功')
+              
+              // 跳转到首页
+              router.push('/')
             } else {
-              sessionStorage.setItem('admin_token', token)
-              sessionStorage.setItem('admin_user_info', JSON.stringify(user))
+              loading.value = false
+              ElMessage.error(response.message || '登录失败')
             }
-            
-            loading.value = false
-            ElMessage.success('登录成功')
-            
-            // 跳转到首页
-            router.push('/')
           } catch (error) {
             loading.value = false
-            ElMessage.error('登录失败，请稍后重试')
+            console.error('登录错误:', error)
+            ElMessage.error(error.response?.data?.message || '登录失败，请稍后重试')
           }
         }
       })
@@ -137,7 +129,7 @@ export default {
           loginForm.remember = true
         } else {
           // 开发环境默认填充管理员ID
-          loginForm.adminId = 'admin_001'
+          loginForm.adminId = '1'
         }
       }
     })

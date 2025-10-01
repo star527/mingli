@@ -24,9 +24,17 @@
             <el-icon><StarFilled /></el-icon>
             <span>会员管理</span>
           </el-menu-item>
+          <el-menu-item index="/membership-levels">
+            <el-icon><Medal /></el-icon>
+            <span>会员等级管理</span>
+          </el-menu-item>
           <el-menu-item index="/videos">
             <el-icon><VideoPlay /></el-icon>
             <span>视频课程管理</span>
+          </el-menu-item>
+          <el-menu-item index="/video-categories">
+            <el-icon><Grid /></el-icon>
+            <span>视频分类管理</span>
           </el-menu-item>
           <el-menu-item index="/finance">
             <el-icon><Wallet /></el-icon>
@@ -82,7 +90,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { HomeFilled, User, StarFilled, VideoPlay, Wallet, DataAnalysis, Menu, ArrowDown } from '@element-plus/icons-vue'
+import { HomeFilled, User, StarFilled, VideoPlay, Wallet, DataAnalysis, Menu, ArrowDown, Medal, Grid } from '@element-plus/icons-vue'
 import { authApi } from '@/api'
 
 export default {
@@ -95,7 +103,9 @@ export default {
     Wallet,
     DataAnalysis,
     Menu,
-    ArrowDown
+    ArrowDown,
+    Medal,
+    Grid
   },
   setup() {
     const route = useRoute()
@@ -132,27 +142,46 @@ export default {
     const handleLogout = () => {
       authApi.logout()
         .then(() => {
-          localStorage.removeItem('adminToken')
-          router.push('/login')
+          console.log('退出登录成功，清除token和用户信息')
+          // 使用正确的token键名
+          localStorage.removeItem('admin_token')
+          sessionStorage.removeItem('admin_token')
+          // 清除用户信息
+          localStorage.removeItem('admin_user_info')
+          sessionStorage.removeItem('admin_user_info')
+          // 强制跳转登录页
+          router.replace('/login')
         })
         .catch(err => {
           console.error('退出登录失败:', err)
-          localStorage.removeItem('adminToken')
-          router.push('/login')
+          // 即使失败也要清除本地数据
+          localStorage.removeItem('admin_token')
+          sessionStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_user_info')
+          sessionStorage.removeItem('admin_user_info')
+          router.replace('/login')
         })
     }
     
     // 获取当前用户信息
     const fetchCurrentUser = () => {
+      // 直接使用默认管理员信息，避免API调用失败导致页面空白
+      currentUser.value = {
+        id: '1',
+        username: '管理员',
+        role: 'admin'
+      }
+      
+      // 异步尝试获取真实用户信息，但不影响界面渲染
       authApi.getCurrentUser()
         .then(res => {
-          currentUser.value = res.data
+          if (res && res.data) {
+            currentUser.value = res.data
+          }
         })
         .catch(err => {
           console.error('获取用户信息失败:', err)
-          // 如果获取用户信息失败，可能是token过期，跳转到登录页
-          localStorage.removeItem('adminToken')
-          router.push('/login')
+          // 失败时保持默认信息
         })
     }
     

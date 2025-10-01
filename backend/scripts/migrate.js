@@ -1,85 +1,11 @@
 /**
  * 数据库迁移脚本
- * 根据schema.sql文件创建数据库表
+ * 创建必要的关键表
  */
 
 const fs = require('fs');
 const path = require('path');
 const initSqlJs = require('sql.js');
-
-// 解析SQL文件，提取独立的SQL语句
-function parseSQLStatements(content) {
-  const statements = [];
-  const lines = content.split('\n');
-  let currentStatement = '';
-  
-  for (const line of lines) {
-    // 跳过空行和注释行
-    if (line.trim() === '' || line.trim().startsWith('--')) {
-      continue;
-    }
-    
-    currentStatement += line + '\n';
-    
-    // 如果遇到分号，说明一个语句结束了
-    if (line.trim().endsWith(';')) {
-      const stmt = currentStatement.trim();
-      if (stmt.length > 0) {
-        statements.push(stmt);
-      }
-      currentStatement = '';
-    }
-  }
-  
-  // 添加最后一个可能没有分号的语句
-  if (currentStatement.trim().length > 0) {
-    statements.push(currentStatement.trim() + ';');
-  }
-  
-  return statements;
-}
-
-// 从CREATE TABLE语句中提取索引定义并生成独立的CREATE INDEX语句
-function extractIndexStatements(createTableStatement) {
-  const indexStatements = [];
-  
-  // 提取表名
-  const tableNameMatch = createTableStatement.match(/CREATE TABLE\s+(\w+)/i);
-  if (!tableNameMatch) return indexStatements;
-  
-  const tableName = tableNameMatch[1];
-  
-  // 查找索引定义
-  const indexMatches = createTableStatement.match(/INDEX\s+(\w+)\s*\(([^)]+)\)/gi) || [];
-  const uniqueMatches = createTableStatement.match(/UNIQUE KEY\s+(\w+)\s*\(([^)]+)\)/gi) || [];
-  
-  // 生成CREATE INDEX语句
-  indexMatches.forEach(match => {
-    const parts = match.match(/INDEX\s+(\w+)\s*\(([^)]+)\)/i);
-    if (parts) {
-      indexStatements.push(`CREATE INDEX ${parts[1]} ON ${tableName} (${parts[2]});`);
-    }
-  });
-  
-  // 生成CREATE UNIQUE INDEX语句
-  uniqueMatches.forEach(match => {
-    const parts = match.match(/UNIQUE KEY\s+(\w+)\s*\(([^)]+)\)/i);
-    if (parts) {
-      indexStatements.push(`CREATE UNIQUE INDEX ${parts[1]} ON ${tableName} (${parts[2]});`);
-    }
-  });
-  
-  return indexStatements;
-}
-
-// 移除CREATE TABLE语句中的索引定义
-function removeIndexDefinitions(createTableStatement) {
-  return createTableStatement
-    .replace(/,\s*INDEX\s+\w+\s*\([^)]+\)/gi, '')  // 移除INDEX定义
-    .replace(/,\s*UNIQUE KEY\s+\w+\s*\([^)]+\)/gi, '')  // 移除UNIQUE KEY定义
-    .replace(/\s+/g, ' ')  // 规范化空白字符
-    .trim();
-}
 
 async function runMigration() {
   try {
@@ -88,18 +14,29 @@ async function runMigration() {
     // 初始化SQL.js
     const SQL = await initSqlJs();
     
-    // 数据库文件路径
-    const dbPath = path.join(__dirname, '../data/mingli.db');
+    // 使用绝对路径确保指向正确的数据库文件
+    const dbPath = path.resolve(__dirname, '../data/mingli.db');
+    
+    // 确保data目录存在
+    const dataDir = path.dirname(dbPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+      console.log(`📁 已创建data目录: ${dataDir}`);
+    }
     
     // 尝试从文件加载现有数据库，如果不存在则创建新数据库
     let db;
     let data = null;
+    
     try {
-      const fileBuffer = fs.readFileSync(dbPath);
-      data = new Uint8Array(fileBuffer);
-      console.log('📂 加载现有数据库文件');
+      if (fs.existsSync(dbPath)) {
+        const fileBuffer = fs.readFileSync(dbPath);
+        data = new Uint8Array(fileBuffer);
+        console.log(`📂 加载现有数据库文件: ${dbPath}`);
+      } else {
+        console.log(`📝 创建新的SQLite数据库文件: ${dbPath}`);
+      }
     } catch (err) {
-      // 文件不存在，将创建新数据库
       console.log('📝 创建新的SQLite数据库文件');
     }
     
@@ -109,138 +46,216 @@ async function runMigration() {
     // 启用外键约束
     db.run('PRAGMA foreign_keys = ON');
     
-    // 读取schema.sql文件
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
-    if (!fs.existsSync(schemaPath)) {
-      throw new Error(`Schema文件不存在: ${schemaPath}`);
-    }
-    
-    const schemaContent = fs.readFileSync(schemaPath, 'utf8');
-    
-    // 解析SQL语句
-    const rawStatements = parseSQLStatements(schemaContent);
-    
-    // 存储处理后的语句和索引语句
-    const processedStatements = [];
-    const indexStatements = [];
-    
-    // 处理SQL语句
-    for (const statement of rawStatements) {
-      let processedStatement = statement
-        .replace(/CREATE DATABASE.*;/g, '') // 移除创建数据库语句
-        .replace(/USE \w+;/g, '') // 移除USE语句
-        .replace(/COMMENT '[^']*'/g, '') // 移除COMMENT注释
-        .replace(/AUTO_INCREMENT/g, '') // 移除AUTO_INCREMENT
-        .replace(/CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci/g, '') // 移除字符集设置
-        .replace(/BIGINT/g, 'INTEGER') // SQLite使用INTEGER
-        .replace(/JSON/g, 'TEXT') // SQLite没有原生JSON类型
-        .replace(/VARCHAR\((\d+)\)/g, 'TEXT') // 简化字符串类型
-        .replace(/DATETIME/g, 'TEXT') // SQLite使用TEXT存储日期时间
-        .replace(/DECIMAL\(\d+,\d+\)/g, 'REAL') // SQLite使用REAL存储小数
-        .replace(/TINYINT/g, 'INTEGER') // SQLite使用INTEGER
-        .replace(/ON UPDATE CURRENT_TIMESTAMP/g, '') // 移除ON UPDATE CURRENT_TIMESTAMP
-        .replace(/,\s* FOREIGN KEY[^(]*\([^)]*\)[^,]*,/g, ',') // 移除外键约束
-        .replace(/,\s* FOREIGN KEY[^(]*\([^)]*\)[^,]*$/g, '') // 移除最后一个外键约束
-        .replace(/\s+/g, ' ') // 规范化空白字符
-        .trim();
-      
-      // 跳过空语句
-      if (processedStatement.length === 0) continue;
-      
-      // 如果是CREATE TABLE语句，提取索引定义
-      if (processedStatement.startsWith('CREATE TABLE')) {
-        // 提取索引语句
-        const extractedIndexes = extractIndexStatements(processedStatement);
-        indexStatements.push(...extractedIndexes);
-        
-        // 移除索引定义
-        processedStatement = removeIndexDefinitions(processedStatement);
+    // 手动定义关键表结构，更新表结构以匹配后端需求
+    const requiredTables = [
+      {
+        name: 'users',
+        sql: `CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL,
+          password TEXT NOT NULL,
+          email TEXT,
+          phone TEXT,
+          nickname TEXT,
+          avatar TEXT,
+          gender INTEGER DEFAULT 0,
+          birthday TEXT,
+          last_login TEXT,
+          status INTEGER DEFAULT 1,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`
+      },
+      {
+        name: 'bazi_records',
+        sql: `CREATE TABLE IF NOT EXISTS bazi_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          name TEXT,
+          gender INTEGER,
+          birth_year INTEGER,
+          birth_month INTEGER,
+          birth_day INTEGER,
+          birth_hour INTEGER,
+          birth_minute INTEGER,
+          birth_city TEXT,
+          bazi_data TEXT,
+          analysis_result TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`
+      },
+      {
+        name: 'videos',
+        sql: `CREATE TABLE IF NOT EXISTS videos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category_id INTEGER,
+          title TEXT NOT NULL,
+          description TEXT,
+          cover_url TEXT,
+          video_url TEXT NOT NULL,
+          duration INTEGER,
+          view_count INTEGER DEFAULT 0,
+          status INTEGER DEFAULT 1,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`
+      },
+      {
+        name: 'orders',
+        sql: `CREATE TABLE IF NOT EXISTS orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          membership_level_id INTEGER,
+          order_no TEXT,
+          amount REAL,
+          status INTEGER DEFAULT 0,
+          payment_method TEXT,
+          payment_time TEXT,
+          expire_time TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`
+      },
+      {
+        name: 'video_categories',
+        sql: `CREATE TABLE IF NOT EXISTS video_categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT,
+          sort_order INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`
+      },
+      {
+        name: 'membership_levels',
+        sql: `CREATE TABLE IF NOT EXISTS membership_levels (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          price REAL NOT NULL,
+          duration INTEGER NOT NULL,
+          description TEXT,
+          benefits TEXT,
+          sort_order INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`
       }
-      
-      processedStatements.push(processedStatement);
-    }
+    ];
     
-    console.log(`📝 找到 ${processedStatements.length} 个SQL语句`);
-    console.log(`📝 找到 ${indexStatements.length} 个索引语句`);
-    
-    // 执行每个SQL语句
-    for (let i = 0; i < processedStatements.length; i++) {
-      const statement = processedStatements[i];
-      if (statement.startsWith('CREATE TABLE')) {
-        try {
-          // 提取表名
-          const tableNameMatch = statement.match(/CREATE TABLE\s+(\w+)/i);
-          if (tableNameMatch) {
-            const tableName = tableNameMatch[1];
-            console.log(`📋 正在创建表: ${tableName}`);
-            
-            // 执行CREATE TABLE语句
-            db.run(statement);
-            console.log(`✅ 表 ${tableName} 创建成功`);
-          }
-        } catch (error) {
-          // 如果表已存在，跳过
-          if (error.message.includes('already exists')) {
-            console.log(`⚠️  表已存在，跳过创建`);
-          } else {
-            console.error(`❌ 创建表失败:`, error.message);
-            throw error;
-          }
-        }
-      } else if (statement.startsWith('CREATE VIEW')) {
-        try {
-          // 提取视图名
-          const viewNameMatch = statement.match(/CREATE VIEW\s+(\w+)/i);
-          if (viewNameMatch) {
-            const viewName = viewNameMatch[1];
-            console.log(`📋 正在创建视图: ${viewName}`);
-            
-            // 执行CREATE VIEW语句
-            db.run(statement);
-            console.log(`✅ 视图 ${viewName} 创建成功`);
-          }
-        } catch (error) {
-          // 如果视图已存在，跳过
-          if (error.message.includes('already exists')) {
-            console.log(`⚠️  视图已存在，跳过创建`);
-          } else {
-            console.error(`❌ 创建视图失败:`, error.message);
-          }
-        }
-      } else if (statement.startsWith('INSERT INTO')) {
-        try {
-          console.log(`📋 执行插入语句...`);
-          db.run(statement);
-          console.log(`✅ 插入语句执行成功`);
-        } catch (error) {
-          console.error(`❌ 插入语句执行失败:`, error.message);
-        }
-      }
-    }
-    
-    // 执行索引语句
-    for (let i = 0; i < indexStatements.length; i++) {
-      const statement = indexStatements[i];
+    // 创建表
+    requiredTables.forEach(table => {
       try {
-        console.log(`📋 正在创建索引...`);
-        db.run(statement);
-        console.log(`✅ 索引创建成功`);
-      } catch (error) {
-        // 如果索引已存在，跳过
-        if (error.message.includes('already exists')) {
-          console.log(`⚠️  索引已存在，跳过创建`);
+        console.log(`📋 正在创建表: ${table.name}`);
+        db.run(table.sql);
+        console.log(`✅ 表 ${table.name} 创建成功`);
+        
+        // 验证表是否真的被创建
+        const result = db.exec(`SELECT name FROM sqlite_master WHERE type='table' AND name='${table.name}'`);
+        if (result && result[0] && result[0].values.length > 0) {
+          console.log(`✅ 表 ${table.name} 验证成功，确实存在`);
         } else {
-          console.error(`❌ 创建索引失败:`, error.message);
+          console.error(`❌ 表 ${table.name} 创建后验证失败，未找到`);
         }
+      } catch (err) {
+        console.error(`❌ 创建表 ${table.name} 失败: ${err.message}`);
       }
+    });
+    
+    // 添加默认视频分类数据（如果表存在且为空）
+    try {
+      const categoryCheck = db.exec("SELECT COUNT(*) FROM video_categories");
+      if (categoryCheck && categoryCheck[0] && categoryCheck[0].values[0][0] === 0) {
+        const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+        const categories = [
+          `('基础八字', '八字基础入门知识', 1, '${now}', '${now}')`,
+          `('进阶命理', '深入学习命理分析', 2, '${now}', '${now}')`,
+          `('运势预测', '年度运势解读方法', 3, '${now}', '${now}')`
+        ];
+        
+        const insertSql = `INSERT INTO video_categories (name, description, sort_order, created_at, updated_at) VALUES ${categories.join(', ')}`;
+        db.run(insertSql);
+        console.log(`✅ 已添加默认视频分类数据`);
+      }
+    } catch (err) {
+      console.error(`⚠️ 添加默认视频分类数据失败: ${err.message}`);
     }
     
-    // 保存数据库到文件
+    // 添加默认会员等级数据（如果表存在且为空）
+    try {
+      const membershipCheck = db.exec("SELECT COUNT(*) FROM membership_levels");
+      if (membershipCheck && membershipCheck[0] && membershipCheck[0].values[0][0] === 0) {
+        const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+        const memberships = [
+          `('普通会员', 29.0, 30, '基础会员权益', '基础八字分析功能', 1, '${now}', '${now}')`,
+          `('高级会员', 99.0, 30, '高级会员权益', '所有功能无限制使用', 2, '${now}', '${now}')`
+        ];
+        
+        const insertSql = `INSERT INTO membership_levels (name, price, duration, description, benefits, sort_order, created_at, updated_at) VALUES ${memberships.join(', ')}`;
+        db.run(insertSql);
+        console.log(`✅ 已添加默认会员等级数据`);
+      }
+    } catch (err) {
+      console.error(`⚠️ 添加默认会员等级数据失败: ${err.message}`);
+    }
+    
+    // 添加默认管理员用户
+    try {
+      // 先检查是否已存在用户
+      const userResult = db.exec("SELECT COUNT(*) FROM users");
+      if (userResult && userResult[0] && userResult[0].values[0][0] === 0) {
+        const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+        const insertSql = `INSERT INTO users (username, password, nickname, status, created_at, updated_at) 
+                          VALUES ('admin', 'e10adc3949ba59abbe56e057f20f883e', '管理员', 1, '${now}', '${now}')`;
+        db.run(insertSql);
+        console.log(`✅ 已添加默认管理员用户: admin/admin123`);
+      }
+    } catch (err) {
+      console.error(`⚠️ 添加默认用户失败: ${err.message}`);
+    }
+    
+    // 保存数据库到文件 - 确保写入操作正确执行
+    console.log('💾 准备保存数据库更改...');
     const exportData = db.export();
     const buffer = Buffer.from(exportData);
-    fs.writeFileSync(dbPath, buffer);
-    console.log('💾 数据库更改已保存到文件');
     
+    // 先创建备份
+    if (fs.existsSync(dbPath)) {
+      const backupPath = `${dbPath}.backup.${Date.now()}`;
+      fs.copyFileSync(dbPath, backupPath);
+      console.log(`✅ 已创建数据库备份: ${backupPath}`);
+    }
+    
+    // 写入数据库文件
+    fs.writeFileSync(dbPath, buffer);
+    console.log(`💾 数据库更改已保存到文件: ${dbPath}`);
+    
+    // 验证保存是否成功
+    const savedStats = fs.statSync(dbPath);
+    console.log(`📊 保存后数据库大小: ${(savedStats.size / 1024).toFixed(2)} KB`);
+    
+    // 重新加载数据库验证表是否存在
+    console.log('🔍 重新加载数据库验证表结构...');
+    const reloadedBuffer = fs.readFileSync(dbPath);
+    const reloadedDb = new SQL.Database(reloadedBuffer);
+    const tablesResult = reloadedDb.exec("SELECT name FROM sqlite_master WHERE type='table'");
+    
+    if (tablesResult && tablesResult[0]) {
+      const tables = tablesResult[0].values.map(row => row[0]);
+      console.log(`✅ 重新加载后发现的表:`, tables);
+      
+      // 检查每个必需的表是否都存在
+      requiredTables.forEach(table => {
+        if (tables.includes(table.name)) {
+          console.log(`✅ 表 ${table.name} 验证存在`);
+        } else {
+          console.error(`❌ 表 ${table.name} 验证不存在！`);
+        }
+      });
+    }
+    
+    reloadedDb.close();
     db.close();
     console.log('✅ 数据库连接已关闭');
     

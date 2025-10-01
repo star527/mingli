@@ -5,6 +5,11 @@ const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
 
+// 延迟函数，模拟网络请求延迟
+const delay = (ms = 300) => {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 // 生成模拟用户数据
 const generateUsers = (count = 50) => {
   const users = []
@@ -200,6 +205,27 @@ const generateHotVideos = () => {
   }
   return videos.sort((a, b) => b.playCount - a.playCount)
 }
+  
+// 生成模拟会员等级数据
+const generateMembershipLevels = () => {
+  return [
+    { id: 1, name: '免费用户', price: 0, duration: 0, description: '基础功能，每月3次免费分析', createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 2, name: '普通会员', price: 29, duration: 30, description: '基础会员权益，每月20次分析', createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 3, name: '高级会员', price: 99, duration: 30, description: '全部会员权益，无限次分析', createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 4, name: '至尊会员', price: 299, duration: 90, description: '尊享服务，优先咨询，专属课程', createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' }
+  ]
+}
+
+// 生成模拟视频分类数据
+const generateVideoCategories = () => {
+  return [
+    { id: 1, name: '八字入门', description: '适合初学者的八字基础知识', sortOrder: 1, createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 2, name: '五行命理', description: '五行相生相克及命理应用', sortOrder: 2, createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 3, name: '运势预测', description: '年运、月运、日运预测方法', sortOrder: 3, createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 4, name: '姓名学', description: '姓名与命运的关系解析', sortOrder: 4, createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' },
+    { id: 5, name: '风水布局', description: '家居办公风水布局技巧', sortOrder: 5, createdAt: '2024-01-01 00:00:00', updatedAt: '2024-01-01 00:00:00' }
+  ]
+}
 
 // 生成模拟留存数据
 const generateRetentionRates = () => {
@@ -221,8 +247,7 @@ const mockData = {
   stats: generateStats()
 }
 
-// 延迟函数，模拟网络延迟
-const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms))
+// 已有delay函数定义，这里不再重复
 
 // Mock API 服务
 export const mockApi = {
@@ -378,6 +403,51 @@ export const mockApi = {
         total: filtered.length,
         page,
         pageSize
+      }
+    }
+  },
+  
+  // 获取会员等级列表
+  getMembershipLevels: async (params = {}) => {
+    await delay()
+    const { page = 1, pageSize = 10 } = params
+    const levels = generateMembershipLevels()
+    
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    const paginatedLevels = levels.slice(start, end)
+    
+    return {
+      code: 200,
+      data: {
+        list: paginatedLevels,
+        total: levels.length,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      }
+    }
+  },
+  
+  // 获取视频分类列表
+  getVideoCategories: async (params = {}) => {
+    await delay()
+    const { page = 1, pageSize = 10 } = params
+    const categories = generateVideoCategories()
+    
+    // 按排序号排序
+    const sortedCategories = [...categories].sort((a, b) => a.sortOrder - b.sortOrder)
+    
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    const paginatedCategories = sortedCategories.slice(start, end)
+    
+    return {
+      code: 200,
+      data: {
+        list: paginatedCategories,
+        total: categories.length,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
       }
     }
   },

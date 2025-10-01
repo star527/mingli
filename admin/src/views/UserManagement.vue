@@ -303,22 +303,26 @@ export default {
     
     // 获取会员标签类型
     const getMembershipTagType = (level) => {
+      // 确保level是字符串类型且有效
+      const validLevel = typeof level === 'string' ? level : 'free'
       const typeMap = {
         free: 'default',
         basic: 'primary',
         premium: 'success'
       }
-      return typeMap[level] || 'default'
+      return typeMap[validLevel] || 'default'
     }
     
     // 获取会员等级文本
     const getMembershipText = (level) => {
+      // 确保level是字符串类型且有效
+      const validLevel = typeof level === 'string' ? level : 'free'
       const textMap = {
         free: '非会员',
         basic: '普通会员',
         premium: '高级会员'
       }
-      return textMap[level] || '未知'
+      return textMap[validLevel] || '未知'
     }
     
     // 加载用户列表

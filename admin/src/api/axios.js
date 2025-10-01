@@ -14,7 +14,7 @@ const service = axios.create({
 service.interceptors.request.use(
   config => {
     // 从localStorage或sessionStorage获取token
-    const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+    const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
@@ -60,8 +60,8 @@ service.interceptors.response.use(
     
     // 如果未授权，可以跳转到登录页
     if (res.code === 401 || res.status === 401) {
-      localStorage.removeItem('adminToken')
-      sessionStorage.removeItem('adminToken')
+      localStorage.removeItem('admin_token')
+      sessionStorage.removeItem('admin_token')
       localStorage.removeItem('admin_user_info')
       sessionStorage.removeItem('admin_user_info')
       window.location.href = '/login'
@@ -84,8 +84,8 @@ service.interceptors.response.use(
       
       // 如果是401错误，清除token并跳转到登录页
       if (error.response.status === 401) {
-        localStorage.removeItem('adminToken')
-        sessionStorage.removeItem('adminToken')
+        localStorage.removeItem('admin_token')
+        sessionStorage.removeItem('admin_token')
         localStorage.removeItem('admin_user_info')
         sessionStorage.removeItem('admin_user_info')
         window.location.href = '/login'

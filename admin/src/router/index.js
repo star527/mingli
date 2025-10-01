@@ -34,10 +34,22 @@ const routes = [
         meta: { requiresAuth: true, title: '会员管理' }
       },
       {
+        path: 'membership-levels',
+        name: 'MembershipLevelManagement',
+        component: () => import('@/views/MembershipLevelManagement.vue'),
+        meta: { requiresAuth: true, title: '会员等级管理' }
+      },
+      {
         path: 'videos',
         name: 'VideoManagement',
         component: () => import('@/views/VideoManagement.vue'),
         meta: { requiresAuth: true, title: '视频管理' }
+      },
+      {
+        path: 'video-categories',
+        name: 'VideoCategoryManagement',
+        component: () => import('@/views/VideoCategoryManagement.vue'),
+        meta: { requiresAuth: true, title: '视频分类管理' }
       },
       {
         path: 'finance',

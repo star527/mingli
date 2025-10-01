@@ -247,6 +247,50 @@ class Database {
       throw error;
     }
   }
+  
+  /**
+   * 兼容MySQL的execute方法
+   * 返回[rows, fields]格式，用于兼容现有代码
+   */
+  async execute(sql, params = []) {
+    try {
+      // 调用query方法执行SQL
+      const result = await this.query(sql, params);
+      
+      // 对于SELECT查询，返回[rows, fields]
+      if (sql.trim().toUpperCase().startsWith('SELECT')) {
+        // 模拟fields信息
+        const fields = [];
+        if (result.length > 0) {
+          // 获取第一行的所有字段名
+          const firstRow = result[0];
+          for (const fieldName in firstRow) {
+            fields.push({
+              name: fieldName,
+              table: sql.includes('FROM') ? sql.split('FROM')[1].split(' ')[0].replace(/[`'"\s]/g, '') : '',
+              originalName: fieldName
+            });
+          }
+        }
+        return [result, fields];
+      }
+      
+      // 对于修改操作，返回[result, undefined]
+      // 为INSERT语句添加insertId属性
+      if (sql.trim().toUpperCase().startsWith('INSERT')) {
+        // 获取最后插入的ID（SQLite的last_insert_rowid()函数）
+        const idResult = await this.query('SELECT last_insert_rowid() as lastId');
+        result.insertId = idResult[0]?.lastId || null;
+      }
+      
+      return [result, undefined];
+    } catch (error) {
+      console.error('❌ 数据库execute失败:', error.message);
+      console.error('SQL:', sql);
+      console.error('Params:', params);
+      throw error;
+    }
+  }
 
   /**
    * 执行事务
@@ -416,6 +460,7 @@ module.exports = {
   connectDatabase,
   getConnection: () => database.getConnection(),
   query: (sql, params) => database.query(sql, params),
+  execute: (sql, params) => database.execute(sql, params),
   transaction: (callback) => database.transaction(callback),
   healthCheck: () => database.healthCheck(),
   getStats: () => database.getStats(),

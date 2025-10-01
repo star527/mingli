@@ -3,7 +3,7 @@ import request from './axios'
 import { mockApi } from './mock'
 
 // 是否使用mock数据（开发环境使用，生产环境使用真实API）
-// 临时设置为false以使用真实API
+// 现在使用真实API
 const USE_MOCK = false
 
 // 用户相关API
@@ -28,6 +28,30 @@ export const membershipApi = {
   updateMembershipStatus: (id, data) => USE_MOCK ? Promise.resolve({ code: 200 }) : request.put(`/admin/memberships/${id}`, data),
   // 获取会员等级配置
   getMembershipLevels: () => USE_MOCK ? Promise.resolve({ code: 200, data: [] }) : request.get('/admin/membership-levels')
+}
+
+// 会员等级相关API
+export const membershipLevelApi = {
+  // 获取会员等级列表
+  list: (params) => USE_MOCK ? mockApi.getMembershipLevels(params) : request.get('/admin/membership-levels', { params }),
+  // 创建会员等级
+  create: (data) => USE_MOCK ? Promise.resolve({ code: 200, data: { ...data, id: Date.now() } }) : request.post('/admin/membership-levels', data),
+  // 更新会员等级
+  update: (data) => USE_MOCK ? Promise.resolve({ code: 200 }) : request.put(`/admin/membership-levels/${data.id}`, data),
+  // 删除会员等级
+  delete: (id) => USE_MOCK ? Promise.resolve({ code: 200 }) : request.delete(`/admin/membership-levels/${id}`)
+}
+
+// 视频分类相关API
+export const videoCategoryApi = {
+  // 获取视频分类列表
+  list: (params) => USE_MOCK ? mockApi.getVideoCategories(params) : request.get('/admin/video-categories', { params }),
+  // 创建视频分类
+  create: (data) => USE_MOCK ? Promise.resolve({ code: 200, data: { ...data, id: Date.now() } }) : request.post('/admin/video-categories', data),
+  // 更新视频分类
+  update: (data) => USE_MOCK ? Promise.resolve({ code: 200 }) : request.put(`/admin/video-categories/${data.id}`, data),
+  // 删除视频分类
+  delete: (id) => USE_MOCK ? Promise.resolve({ code: 200 }) : request.delete(`/admin/video-categories/${id}`)
 }
 
 // 视频相关API
@@ -82,9 +106,12 @@ export const analyticsApi = {
 
 // 认证相关API
 export const authApi = {
-  login: (data) => USE_MOCK ? mockApi.login(data.username, data.password) : request.post('/admin/login', data),
+  // 管理员登录
+  login: (data) => USE_MOCK ? Promise.resolve({ code: 200, data: { token: 'mock-token', user: { id: 1, username: 'admin' } } }) : request.post('/admin/login', data),
+  // 管理员退出登录
   logout: () => USE_MOCK ? Promise.resolve({ code: 200 }) : request.post('/admin/logout'),
-  getCurrentUser: () => USE_MOCK ? Promise.resolve({ code: 200, data: { id: 1, username: 'admin', role: 'admin' } }) : request.get('/admin/current-user')
+  // 获取当前用户信息
+  getCurrentUser: () => USE_MOCK ? Promise.resolve({ code: 200, data: { id: 1, username: 'admin' } }) : request.get('/admin/current-user')
 }
 
 // 导出API方法
@@ -114,5 +141,15 @@ export const login = authApi.login
 export const logout = authApi.logout
 export const getCurrentUser = authApi.getCurrentUser
 
-// 认证相关API（别名）
+// 认证相关API（导出了各个独立方法作为别名）
 export const authenticationApi = authApi
+
+// 导出新增的API
+export const membershipLevelList = membershipLevelApi.list
+export const createMembershipLevel = membershipLevelApi.create
+export const updateMembershipLevel = membershipLevelApi.update
+export const deleteMembershipLevel = membershipLevelApi.delete
+export const videoCategoryList = videoCategoryApi.list
+export const createVideoCategory = videoCategoryApi.create
+export const updateVideoCategory = videoCategoryApi.update
+export const deleteVideoCategory = videoCategoryApi.delete

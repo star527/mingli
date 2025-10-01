@@ -198,7 +198,31 @@ CREATE TABLE coupons (
     code VARCHAR(50) UNIQUE NOT NULL COMMENT '优惠券码',
     name VARCHAR(100) NOT NULL COMMENT '优惠券名称',
     
-    -- 优惠信息
+    -- 会员等级表
+CREATE TABLE membership_levels (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '会员等级ID',
+    name VARCHAR(100) NOT NULL COMMENT '等级名称',
+    price DECIMAL(10,2) NOT NULL COMMENT '价格',
+    duration INT NOT NULL COMMENT '时长(天)',
+    description TEXT COMMENT '等级描述',
+    benefits TEXT COMMENT '会员权益',
+    sort_order INT DEFAULT 0 COMMENT '排序序号',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sort_order (sort_order)
+) COMMENT '会员等级表';
+
+-- 视频分类表
+CREATE TABLE video_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '分类ID',
+    name VARCHAR(100) NOT NULL COMMENT '分类名称',
+    description TEXT COMMENT '分类描述',
+    sort_order INT DEFAULT 0 COMMENT '排序序号',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sort_order (sort_order),
+    UNIQUE KEY uk_name (name)
+) COMMENT '视频分类表';    -- 优惠信息
     type VARCHAR(20) NOT NULL COMMENT '类型: percentage, fixed',
     value DECIMAL(10,2) NOT NULL COMMENT '优惠值',
     min_amount DECIMAL(10,2) DEFAULT 0 COMMENT '最低使用金额',
@@ -292,6 +316,32 @@ INSERT INTO system_configs (id, config_key, config_value, description) VALUES
 ('3', 'premium_member_price', '99', '高级会员月费'),
 ('4', 'video_upload_limit', '500', '视频上传大小限制(MB)'),
 ('5', 'consultation_base_price', '199', '基础咨询价格');
+
+-- 会员等级表
+CREATE TABLE membership_levels (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '会员等级ID',
+    name VARCHAR(100) NOT NULL COMMENT '等级名称',
+    price DECIMAL(10,2) NOT NULL COMMENT '价格',
+    duration INT NOT NULL COMMENT '时长(天)',
+    description TEXT COMMENT '等级描述',
+    benefits TEXT COMMENT '会员权益',
+    sort_order INT DEFAULT 0 COMMENT '排序序号',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sort_order (sort_order)
+) COMMENT '会员等级表';
+
+-- 视频分类表
+CREATE TABLE video_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '分类ID',
+    name VARCHAR(100) NOT NULL COMMENT '分类名称',
+    description TEXT COMMENT '分类描述',
+    sort_order INT DEFAULT 0 COMMENT '排序序号',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sort_order (sort_order),
+    UNIQUE KEY uk_name (name)
+) COMMENT '视频分类表';
 
 -- 创建统计视图
 CREATE VIEW member_stats AS
