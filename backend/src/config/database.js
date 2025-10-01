@@ -276,14 +276,22 @@ class Database {
       }
       
       // 对于修改操作，返回[result, undefined]
+      // 确保result是一个对象，而不是布尔值
+      const returnResult = typeof result === 'object' && result !== null ? result : {};
+      
       // 为INSERT语句添加insertId属性
       if (sql.trim().toUpperCase().startsWith('INSERT')) {
-        // 获取最后插入的ID（SQLite的last_insert_rowid()函数）
-        const idResult = await this.query('SELECT last_insert_rowid() as lastId');
-        result.insertId = idResult[0]?.lastId || null;
+        try {
+          // 获取最后插入的ID（SQLite的last_insert_rowid()函数）
+          const idResult = await this.query('SELECT last_insert_rowid() as lastId');
+          returnResult.insertId = idResult[0]?.lastId || null;
+        } catch (err) {
+          console.error('获取插入ID失败:', err.message);
+          returnResult.insertId = null;
+        }
       }
       
-      return [result, undefined];
+      return [returnResult, undefined];
     } catch (error) {
       console.error('❌ 数据库execute失败:', error.message);
       console.error('SQL:', sql);

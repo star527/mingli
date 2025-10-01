@@ -17,8 +17,7 @@
             <el-form-item label="会员等级">
               <el-select v-model="searchForm.level" placeholder="请选择会员等级">
                 <el-option label="全部" value=""></el-option>
-                <el-option label="普通会员" value="basic"></el-option>
-                <el-option label="高级会员" value="premium"></el-option>
+                <el-option v-for="level in membershipLevels" :key="level.id" :label="level.name" :value="level.name"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -86,8 +85,16 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="startTime" label="开通时间" width="180"></el-table-column>
-        <el-table-column prop="expireTime" label="到期时间" width="180"></el-table-column>
+        <el-table-column prop="startTime" label="开通时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.startTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="expireTime" label="到期时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.expireTime) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="duration" label="有效期(天)" width="120"></el-table-column>
         <el-table-column prop="autoRenew" label="自动续费" width="100">
           <template #default="scope">
@@ -160,12 +167,12 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="开通时间">
-              <el-input v-model="currentMember.startTime" disabled></el-input>
+              <el-input :value="formatTime(currentMember.startTime)" disabled></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="到期时间">
-              <el-input v-model="currentMember.expireTime" disabled></el-input>
+              <el-input :value="formatTime(currentMember.expireTime)" disabled></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -239,7 +246,7 @@
 <script>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getMembershipList, updateMembershipStatus } from '@/api'
+import { getMembershipList, updateMembershipStatus, getMembershipLevels } from '@/api'
 
 // 模拟会员数据
 const mockMemberships = [
@@ -327,6 +334,9 @@ export default {
     const memberDetailVisible = ref(false)
     const currentMember = reactive({})
     
+    // 会员等级列表
+    const membershipLevels = ref([])
+    
     // 续费对话框
     const renewVisible = ref(false)
     const renewFormRef = ref(null)
@@ -353,11 +363,50 @@ export default {
     
     // 获取会员等级文本
     const getMembershipText = (level) => {
+      // 先尝试从等级列表中查找，确保是数组
+      if (Array.isArray(membershipLevels.value)) {
+        const foundLevel = membershipLevels.value.find(l => l.name === level || l.id === level)
+        if (foundLevel) return foundLevel.name
+      }
+      
+      // 保留原有映射作为后备
       const textMap = {
         basic: '普通会员',
         premium: '高级会员'
       }
-      return textMap[level] || '未知'
+      return textMap[level] || level || '未知'
+    }
+    
+    // 格式化时间，添加8小时（UTC+8）
+    const formatTime = (timeStr) => {
+      if (!timeStr) return ''
+      const date = new Date(timeStr)
+      // 添加8小时
+      date.setHours(date.getHours() + 8)
+      // 格式化时间
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    }
+    
+    // 加载会员等级列表
+    const loadMembershipLevels = async () => {
+      try {
+        const response = await getMembershipLevels()
+        if (response.code === 200) {
+          // 正确处理分页数据结构，使用items字段
+          membershipLevels.value = Array.isArray(response.data?.items) ? response.data.items : []
+        }
+      } catch (error) {
+        console.error('获取会员等级列表失败:', error)
+        // 发生错误时设置为空数组
+        membershipLevels.value = []
+      }
     }
     
     // 计算续费金额
@@ -588,6 +637,7 @@ export default {
     }
     
     onMounted(() => {
+      loadMembershipLevels()
       loadMembershipList()
     })
     
@@ -604,6 +654,7 @@ export default {
       renewFormRef,
       renewForm,
       renewRules,
+      membershipLevels,
       calculateRenewAmount,
       handleSearch,
       resetSearch,
@@ -617,7 +668,8 @@ export default {
       confirmRenew,
       toggleAutoRenew,
       getMembershipTagType,
-      getMembershipText
+      getMembershipText,
+      formatTime
     }
   }
 }

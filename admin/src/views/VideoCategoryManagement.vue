@@ -15,9 +15,17 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="分类名称" />
         <el-table-column prop="description" label="分类描述" />
-        <el-table-column prop="sortOrder" label="排序" width="100" />
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column prop="updatedAt" label="更新时间" width="180" />
+        <el-table-column prop="sort_order" label="排序" width="100" />
+        <el-table-column prop="created_at" label="创建时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.created_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="updated_at" label="更新时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.updated_at) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="scope">
             <el-button type="primary" size="small" @click="editCategory(scope.row)">编辑</el-button>
@@ -53,8 +61,8 @@
         <el-form-item label="分类描述" prop="description">
           <el-input v-model="formData.description" placeholder="请输入分类描述" type="textarea" :rows="3" />
         </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
-          <el-input v-model.number="formData.sortOrder" placeholder="请输入排序值" type="number" />
+        <el-form-item label="排序" prop="sort_order">
+          <el-input v-model.number="formData.sort_order" placeholder="请输入排序值" type="number" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -71,6 +79,23 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { videoCategoryApi } from '@/api'
 
+// 格式化时间，添加8小时（UTC+8）
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const date = new Date(timeStr)
+  // 添加8小时
+  date.setHours(date.getHours() + 8)
+  // 格式化时间
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
 export default {
   name: 'VideoCategoryManagement',
   setup() {
@@ -85,7 +110,7 @@ export default {
       id: null,
       name: '',
       description: '',
-      sortOrder: 0
+      sort_order: 0
     })
     
     // 获取分类列表
@@ -109,7 +134,7 @@ export default {
         id: null,
         name: '',
         description: '',
-        sortOrder: 0
+        sort_order: 0
       }
       dialogTitle.value = '新增分类'
       dialogVisible.value = true
@@ -188,7 +213,8 @@ export default {
       deleteCategory,
       handleSizeChange,
       handleCurrentChange,
-      goBack
+      goBack,
+      formatTime
     }
   }
 }

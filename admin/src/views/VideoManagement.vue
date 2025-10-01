@@ -196,6 +196,7 @@ import { ElMessage, ElMessageBox, ElPagination } from 'element-plus'
 import axios from 'axios'
 import { Plus, VideoPlay } from '@element-plus/icons-vue'
 import { getVideoList, createVideo, updateVideo, deleteVideo, uploadCover, uploadVideo } from '@/api'
+import { videoCategoryApi } from '@/api'
 import { formatDateTime } from '@/utils/date'
 
 export default {
@@ -240,12 +241,30 @@ export default {
     const videoList = ref([])
     
     // 视频分类
-    const categories = ref([
-      { label: '基础课程', value: 1 },
-      { label: '进阶课程', value: 2 },
-      { label: '实战案例', value: 3 },
-      { label: '行业解析', value: 4 }
-    ])
+    const categories = ref([])
+    
+    // 加载分类列表
+    const loadCategories = async () => {
+      try {
+        const response = await videoCategoryApi.list({ pageSize: 100 }) // 获取所有分类
+        if (response.code === 200 && response.data) {
+          // 转换为element-plus select需要的格式
+          categories.value = response.data.items.map(cat => ({
+            label: cat.name,
+            value: cat.id
+          }))
+        }
+      } catch (error) {
+        console.error('加载分类失败:', error)
+        // 如果API调用失败，使用默认分类作为备用
+        categories.value = [
+          { label: '基础课程', value: 1 },
+          { label: '进阶课程', value: 2 },
+          { label: '实战案例', value: 3 },
+          { label: '行业解析', value: 4 }
+        ]
+      }
+    }
     
     // localStorage键名
     const STORAGE_KEY = 'video_management_data'
@@ -779,6 +798,9 @@ export default {
     
     // 组件挂载时加载数据
     onMounted(() => {
+      // 先加载分类数据
+      loadCategories()
+      // 再加载视频列表
       loadVideoList()
     })
     

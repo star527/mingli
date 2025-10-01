@@ -17,8 +17,16 @@
         <el-table-column prop="price" label="价格" />
         <el-table-column prop="duration" label="有效期(天)" />
         <el-table-column prop="description" label="描述" />
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column prop="updatedAt" label="更新时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.created_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="updated_at" label="更新时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.updated_at) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="scope">
             <el-button type="primary" size="small" @click="editLevel(scope.row)">编辑</el-button>
@@ -180,6 +188,23 @@ export default {
       fetchMembershipLevels()
     })
     
+    // 格式化时间，添加8小时（UTC+8）
+    const formatTime = (timeStr) => {
+      if (!timeStr) return ''
+      const date = new Date(timeStr)
+      // 添加8小时
+      date.setHours(date.getHours() + 8)
+      // 格式化时间
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    }
+
     return {
       membershipLevels,
       currentPage,
@@ -194,7 +219,8 @@ export default {
       deleteLevel,
       handleSizeChange,
       handleCurrentChange,
-      goBack
+      goBack,
+      formatTime
     }
   }
 }

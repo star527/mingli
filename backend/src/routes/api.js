@@ -734,26 +734,7 @@ router.put('/admin/memberships/:id',
  */
 router.get('/admin/membership-levels',
   authMiddleware.requireAdmin,
-  async (req, res) => {
-    try {
-      const mockLevels = [
-        { id: 'basic', name: '普通会员' },
-        { id: 'premium', name: '高级会员' }
-      ];
-      
-      res.status(200).json({
-        code: 200,
-        message: 'success',
-        data: mockLevels
-      });
-    } catch (error) {
-      res.status(500).json({
-        code: 500,
-        message: '获取会员等级失败',
-        error: error.message
-      });
-    }
-  }
+  adminController.getMembershipLevels
 );
 
 // ==================== 文件上传接口 ====================
