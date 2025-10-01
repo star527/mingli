@@ -76,10 +76,17 @@
         
         <!-- 主内容区域 -->
         <el-main class="main-content">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
+          <!-- 优化路由视图渲染 -->
+          <router-view v-slot="{ Component, route }">
+            <!-- 只有当组件存在时才渲染 -->
+            <div v-if="Component" :key="`${route.path}-${Date.now()}`">
+              <!-- 添加时间戳确保每次都重新创建组件实例 -->
               <component :is="Component" />
-            </transition>
+            </div>
+            <!-- 组件不存在时显示加载提示 -->
+            <div v-else class="loading-placeholder">
+              <el-empty description="页面加载中..." />
+            </div>
           </router-view>
         </el-main>
       </el-container>
