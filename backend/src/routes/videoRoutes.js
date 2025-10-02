@@ -118,22 +118,33 @@ router.get('/admin/videos',
       let whereClause = '';
       let params = [];
       
-      // 获取分类参数
+      // 获取过滤参数
       const category = req.query.category;
-      console.log('[ADMIN VIDEO ROUTE] 请求参数:', { page, pageSize, title, category });
+      const status = req.query.status;
+      console.log('[ADMIN VIDEO ROUTE] 请求参数:', { page, pageSize, title, category, status });
       
       // 构建WHERE子句
-      if (title || category) {
+      if (title || category || status) {
         whereClause = 'WHERE';
+        
+        let hasCondition = false;
         
         if (title) {
           whereClause += ' title LIKE ?';
           params.push(`%${title}%`);
+          hasCondition = true;
         }
         
         if (category) {
-          whereClause += (title ? ' AND' : '') + ' category_id = ?';
+          whereClause += (hasCondition ? ' AND' : '') + ' category_id = ?';
           params.push(parseInt(category));
+          hasCondition = true;
+        }
+        
+        if (status !== undefined && status !== null && status !== '') {
+          whereClause += (hasCondition ? ' AND' : '') + ' status = ?';
+          params.push(parseInt(status));
+          hasCondition = true;
         }
         
         console.log('[ADMIN VIDEO ROUTE] 带过滤条件:', whereClause, params);
