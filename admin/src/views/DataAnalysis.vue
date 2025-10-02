@@ -244,6 +244,13 @@ export default {
     // 用户增长图表使用模拟数据
     const loadUserGrowthChart = () => {
         try {
+          // 获取DOM元素，确保存在再继续
+          const chartElement = document.getElementById('userGrowthChart')
+          if (!chartElement) {
+            console.warn('未找到用户增长图表元素')
+            return
+          }
+          
           // 根据选择的图表类型设置不同的模拟数据
           const mockData = {
             labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
@@ -256,7 +263,7 @@ export default {
             userGrowthChart.destroy()
           }
           
-          userGrowthChart = new Chart(document.getElementById('userGrowthChart'), {
+          userGrowthChart = new Chart(chartElement, {
             type: 'line',
             data: {
               labels: mockData.labels || [],
@@ -285,6 +292,7 @@ export default {
             }
           })
         } catch (error) {
+          console.error('渲染用户增长图表失败:', error)
           ElMessage.error('渲染用户增长图表失败')
         }
       }
@@ -292,6 +300,13 @@ export default {
     // 收入图表使用模拟数据
     const loadIncomeChart = () => {
       try {
+        // 获取DOM元素，确保存在再继续
+        const chartElement = document.getElementById('incomeChart')
+        if (!chartElement) {
+          console.warn('未找到收入图表元素')
+          return
+        }
+        
         // 使用模拟数据进行图表渲染
         const mockData = {
           labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
@@ -302,7 +317,7 @@ export default {
           incomeChart.destroy()
         }
         
-        incomeChart = new Chart(document.getElementById('incomeChart'), {
+        incomeChart = new Chart(chartElement, {
           type: 'bar',
           data: {
             labels: mockData.labels || [],
@@ -340,6 +355,13 @@ export default {
     // 地域分布图表使用模拟数据
     const loadRegionChart = () => {
         try {
+          // 获取DOM元素，确保存在再继续
+          const chartElement = document.getElementById('regionChart')
+          if (!chartElement) {
+            console.warn('未找到地域分布图表元素')
+            return
+          }
+          
           // 使用模拟数据进行图表渲染
           const mockData = {
             labels: ['北京', '上海', '广州', '深圳', '其他'],
@@ -350,7 +372,7 @@ export default {
             regionChart.destroy()
           }
           
-          regionChart = new Chart(document.getElementById('regionChart'), {
+          regionChart = new Chart(chartElement, {
             type: 'pie',
             data: {
               labels: mockData.labels || [],
@@ -380,6 +402,13 @@ export default {
     // 视频数据图表使用模拟数据
     const loadVideoChart = () => {
         try {
+          // 获取DOM元素，确保存在再继续
+          const chartElement = document.getElementById('videoChart')
+          if (!chartElement) {
+            console.warn('未找到视频数据图表元素')
+            return
+          }
+          
           // 根据选择的图表类型设置不同的模拟数据
           const mockData = {
             labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
@@ -392,7 +421,7 @@ export default {
             videoChart.destroy()
           }
           
-          videoChart = new Chart(document.getElementById('videoChart'), {
+          videoChart = new Chart(chartElement, {
             type: 'bar',
             data: {
               labels: mockData.labels || [],
@@ -476,9 +505,12 @@ export default {
     
     // 图表类型变化
     const handleChartTypeChange = () => {
-      loadUserGrowthChart()
-      loadIncomeChart()
-      loadVideoChart()
+      // 使用setTimeout和nextTick确保DOM元素已经完全渲染完成
+      setTimeout(() => {
+        nextTick(() => {
+          loadCharts()
+        })
+      }, 50)
     }
     
     // 加载所有数据
@@ -488,7 +520,13 @@ export default {
         loadHotVideos(),
         loadRetentionRates()
       ])
-      handleChartTypeChange()
+      
+      // 使用setTimeout和nextTick确保DOM元素已经完全渲染完成
+      setTimeout(() => {
+        nextTick(() => {
+          loadCharts()
+        })
+      }, 100)
     }
     
     // 组件挂载时设置默认日期范围并加载数据
@@ -502,8 +540,63 @@ export default {
         end.toISOString().split('T')[0]
       ]
       
-      loadAllData()
+      // 先加载数据
+      Promise.all([
+        loadDashboardData(),
+        loadHotVideos(),
+        loadRetentionRates()
+      ]).then(() => {
+        // 使用setTimeout确保DOM完全渲染并稳定
+        setTimeout(() => {
+          nextTick(() => {
+            loadCharts()
+          })
+        }, 100)
+      })
     })
+    
+    // 统一的图表加载函数
+    const loadCharts = () => {
+      console.log('开始加载图表...')
+      
+      // 检查所有图表容器是否存在
+      const containers = [
+        { id: 'userGrowthChart', name: '用户增长图表' },
+        { id: 'incomeChart', name: '收入图表' },
+        { id: 'regionChart', name: '地域分布图表' },
+        { id: 'videoChart', name: '视频数据图表' }
+      ]
+      
+      containers.forEach(container => {
+        const element = document.getElementById(container.id)
+        console.log(`${container.name} 容器存在:`, !!element)
+      })
+      
+      // 逐个加载图表，使用try-catch确保一个失败不影响其他
+      try {
+        loadUserGrowthChart()
+      } catch (error) {
+        console.error('加载用户增长图表失败:', error)
+      }
+      
+      try {
+        loadIncomeChart()
+      } catch (error) {
+        console.error('加载收入图表失败:', error)
+      }
+      
+      try {
+        loadRegionChart()
+      } catch (error) {
+        console.error('加载地域分布图表失败:', error)
+      }
+      
+      try {
+        loadVideoChart()
+      } catch (error) {
+        console.error('加载视频数据图表失败:', error)
+      }
+    }
     
     return {
       dateRange,

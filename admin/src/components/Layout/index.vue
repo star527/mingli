@@ -40,6 +40,10 @@
             <el-icon><Wallet /></el-icon>
             <span>财务管理</span>
           </el-menu-item>
+          <el-menu-item index="/withdrawals">
+            <el-icon><Document /></el-icon>
+            <span>提现管理</span>
+          </el-menu-item>
           <el-menu-item index="/analytics">
             <el-icon><DataAnalysis /></el-icon>
             <span>数据分析</span>
@@ -97,7 +101,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { HomeFilled, User, StarFilled, VideoPlay, Wallet, DataAnalysis, Menu, ArrowDown, Medal, Grid } from '@element-plus/icons-vue'
+import { HomeFilled, User, StarFilled, VideoPlay, Wallet, DataAnalysis, Menu, ArrowDown, Medal, Grid, Document } from '@element-plus/icons-vue'
 import { authApi } from '@/api'
 
 export default {
@@ -112,7 +116,8 @@ export default {
     Menu,
     ArrowDown,
     Medal,
-    Grid
+    Grid,
+    Document
   },
   setup() {
     const route = useRoute()

@@ -38,6 +38,7 @@ const shareController = require('../controllers/shareController');
 
 // 路由模块
 const videoRoutes = require('./videoRoutes');
+const withdrawalRoutes = require('./withdrawalRoutes');
 
 // ==================== 用户相关接口 ====================
 
@@ -72,6 +73,8 @@ router.put('/users/profile',
 // ==================== 视频课程接口 ====================
 // 集成视频相关的所有路由
 router.use('/', videoRoutes);
+// 集成提现相关的所有路由
+router.use('/', withdrawalRoutes);
 
 // ==================== 八字排盘接口 ====================
 

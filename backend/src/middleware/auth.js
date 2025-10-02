@@ -9,7 +9,7 @@ const membershipService = require('../services/membershipService');
 const userService = require('../services/userService');
 
 class AuthMiddleware {
-  constructor(config) {
+  constructor(config = {}) {
     this.config = config;
     this.membershipService = membershipService;
     this.userService = userService;
@@ -315,4 +315,4 @@ class AuthMiddleware {
   }
 }
 
-module.exports = (config) => new AuthMiddleware(config);
+module.exports = (config = {}) => new AuthMiddleware(config);

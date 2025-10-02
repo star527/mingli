@@ -51,11 +51,15 @@ const routes = [
         component: () => import('@/views/VideoCategoryManagement.vue'),
         meta: { requiresAuth: true, title: '视频分类管理' }
       },
-      {
-        path: 'finance',
+      {        path: 'finance',
         name: 'FinanceManagement',
         component: () => import('@/views/FinanceManagement.vue'),
         meta: { requiresAuth: true, title: '财务管理' }
+      },
+      {        path: 'withdrawals',
+        name: 'WithdrawalManagement',
+        component: () => import('@/views/WithdrawalManagement.vue'),
+        meta: { requiresAuth: true, title: '提现管理' }
       },
       {
         path: 'analytics',
