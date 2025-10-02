@@ -743,27 +743,104 @@ router.get('/admin/membership-levels',
  * 上传图片（用于视频封面等）
  * POST /api/upload/image
  */
+// 确保在使用前导入multer
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// 图片上传配置
+const imageStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // 确保上传目录存在
+    const uploadDir = path.join(__dirname, '../../public/uploads/image');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // 生成唯一文件名
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'image-' + uniqueSuffix + ext);
+  }
+});
+
+// 图片上传中间件 - 更宽松的配置以适应前端需求
+const imageUpload = multer({
+  storage: imageStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  },
+  fileFilter: function (req, file, cb) {
+    // 允许所有图片文件，包括SVG
+    const imageTypes = /jpeg|jpg|png|gif|webp|svg/;
+    const extname = imageTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = imageTypes.test(file.mimetype) || file.mimetype === 'image/svg+xml';
+    
+    console.log('[UPLOAD DEBUG] 收到文件:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      fieldname: file.fieldname,
+      extname: path.extname(file.originalname).toLowerCase(),
+      extnameMatch: extname,
+      mimetypeMatch: mimetype
+    });
+    
+    if (extname || mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('只允许上传图片文件！'));
+    }
+  }
+});
+
+// 添加中间件来捕获Multer错误
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('[UPLOAD ERROR] Multer错误:', err.message, err.field);
+    return res.status(400).json({
+      code: 400,
+      message: `文件上传错误: ${err.message}`
+    });
+  }
+  next(err);
+};
+
 router.post('/upload/image',
   // 临时移除认证中间件以便测试
   // authMiddleware.requireAuth,
   // authMiddleware.requireAdmin,
+  // 使用multer处理文件上传，并添加错误处理
+  imageUpload.single('cover'), // 前端表单中文件字段名为'cover'
+  handleMulterError, // 处理Multer特定错误
   (req, res) => {
     try {
-      console.log('[UPLOAD DEBUG] 收到图片上传请求');
-      // 模拟图片上传，返回一个空的base64占位图，避免网络依赖
-      const mockImageUrl = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22400%22 height%3D%22300%22 viewBox%3D%220 0 400 300%22%3E%3Crect width%3D%22100%25%22 height%3D%22100%25%22 fill%3D%22%23f0f0f0%22%2F%3E%3Ctext x%3D%2250%25%22 y%3D%2250%25%22 font-family%3D%22Arial%22 font-size%3D%2224%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22 fill%3D%22%23666%22%3E视频封面%3C%2Ftext%3E%3C%2Fsvg%3E';
+      console.log('[UPLOAD DEBUG] 收到图片上传请求，文件信息:', req.file);
+      
+      if (!req.file) {
+        return res.status(400).json({
+          code: 400,
+          message: '请选择要上传的图片文件'
+        });
+      }
+      
+      // 构建文件URL
+      const imageUrl = '/uploads/image/' + req.file.filename;
+      
+      console.log('[UPLOAD DEBUG] 图片上传成功，URL:', imageUrl);
       
       res.json({
         code: 200,
         data: {
-          url: mockImageUrl
+          url: imageUrl
         }
       });
     } catch (error) {
       console.error('上传图片失败:', error);
       res.status(500).json({
         code: 500,
-        message: '上传图片失败'
+        message: '上传图片失败: ' + error.message
       });
     }
   }
@@ -773,16 +850,13 @@ router.post('/upload/image',
  * 上传视频文件
  * POST /api/upload/video
  */
-// 导入multer用于文件上传
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+// 使用已经导入的multer
 
 // 配置multer存储
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // 确保上传目录存在
-    const uploadDir = path.join(__dirname, '../../public/uploads');
+    const uploadDir = path.join(__dirname, '../../public/uploads/video');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -834,7 +908,7 @@ router.post('/upload/video',
       }
       
       // 构建文件URL
-      const videoUrl = '/uploads/' + req.file.filename;
+      const videoUrl = '/uploads/video/' + req.file.filename;
       
       console.log('[UPLOAD DEBUG] 视频上传成功，URL:', videoUrl);
       

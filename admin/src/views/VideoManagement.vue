@@ -39,15 +39,13 @@
       <el-table-column label="封面" width="100">
         <template #default="scope">
           <div class="video-cover-container" @click="playVideo(scope.row)">
-            <!-- 使用预计算的封面URL，避免运行时错误处理和闪烁 -->
+            <!-- 使用预计算的封面URL -->
             <el-image 
               :key="`cover-${scope.row.id}`" 
               :src="processVideoCover(scope.row)" 
               fit="cover" 
               :preview-src-list="[processVideoCover(scope.row)]"
               :lazy="false"
-              :initial-preview="[]"
-              :show-upload-list="false"
             />
             <div class="play-icon-overlay">
               <el-icon class="play-icon"><VideoPlay /></el-icon>
@@ -122,6 +120,7 @@
             :show-file-list="false"
             :before-upload="beforeUpload"
           >
+            <!-- 直接使用已处理的videoForm.coverUrl，避免重复转换导致闪烁 -->
             <img v-if="videoForm.coverUrl" :src="videoForm.coverUrl" class="avatar" />
             <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
           </el-upload>
@@ -342,10 +341,12 @@ export default {
           videoList.value = response.data.list || []
           pagination.total = response.data.total || 0
           
-          // 确保每个视频都有categoryName
+          // 确保每个视频都有categoryName，注意类型转换
           videoList.value = videoList.value.map(video => ({
             ...video,
-            categoryName: categories.value.find(c => c.value === video.categoryId)?.label || '未分类'
+            categoryName: categories.value.find(c => Number(c.value) === Number(video.categoryId))?.label || '未分类',
+            // 确保categoryId是数字类型
+            categoryId: Number(video.categoryId) || 0
           }))
         } else {
           throw new Error('获取视频列表失败')
@@ -379,10 +380,13 @@ export default {
     // 新增视频
     const handleAddVideo = () => {
       dialogType.value = 'add'
+      // 新增视频时设置默认分类为第一个分类
+      const defaultCategoryId = categories.value.length > 0 ? categories.value[0].value : 0
+      
       Object.assign(videoForm, {
         id: '',
         title: '',
-        categoryId: '',
+        categoryId: defaultCategoryId,
         coverUrl: '',
         videoUrl: '',
         description: '',
@@ -395,11 +399,22 @@ export default {
     // 编辑视频
     const handleEditVideo = (row) => {
       dialogType.value = 'edit'
+      // 确保categoryId是有效数字，默认为第一个分类或0
+      const validCategoryId = row.categoryId && Number(row.categoryId) > 0 
+        ? Number(row.categoryId) 
+        : (categories.value.length > 0 ? categories.value[0].value : 0)
+      
+      // 处理封面URL，添加完整的后端服务器地址
+      let coverUrl = row.coverUrl || ''
+      if (coverUrl && coverUrl.startsWith('/uploads/')) {
+        coverUrl = `http://localhost:3000${coverUrl}`
+      }
+      
       Object.assign(videoForm, {
         id: row.id,
         title: row.title,
-        categoryId: row.categoryId,
-        coverUrl: row.coverUrl,
+        categoryId: validCategoryId,
+        coverUrl: coverUrl,
         videoUrl: row.videoUrl,
         description: row.description,
         status: row.status
@@ -439,10 +454,10 @@ export default {
       
       loading.value = true
       try {
-        // 创建一个新的formData对象，将categoryId转换为category
+        // 创建formData对象，保持categoryId字段名
         const formData = {
           title: videoForm.title,
-          category: videoForm.categoryId ? categories.value.find(c => c.value === videoForm.categoryId)?.label : '未分类',
+          categoryId: videoForm.categoryId,
           coverUrl: videoForm.coverUrl,
           videoUrl: videoForm.videoUrl,
           description: videoForm.description,
@@ -577,7 +592,15 @@ export default {
         formData.append('cover', file)
         
         const response = await uploadCover(formData)
-        videoForm.coverUrl = response.data.url
+        
+        // 关键修复：在设置coverUrl前就处理URL，避免后续模板中的转换导致闪烁
+        let coverUrl = response.data.url || ''
+        if (coverUrl && coverUrl.startsWith('/uploads/')) {
+          coverUrl = `http://localhost:3000${coverUrl}`
+        }
+        
+        // 直接设置处理后的完整URL
+        videoForm.coverUrl = coverUrl
         uploadData.onSuccess(response)
       } catch (error) {
         console.error('封面上传失败:', error)
@@ -684,44 +707,65 @@ export default {
     
     // 常量定义 - 直接内联到方法中减少变量依赖
     
-    // 处理视频封面的核心函数，完全预计算，避免运行时错误处理
+    // 专门处理封面URL的函数，用于编辑对话框中
+    const processVideoCoverUrl = (coverUrl) => {
+      try {
+        // 安全地获取封面URL
+        const url = (coverUrl || '').trim();
+        
+        // 关键修复：为/uploads开头的URL添加完整的后端服务器地址
+        if (url && url.startsWith('/uploads/')) {
+          // 使用后端服务器地址：http://localhost:3000
+          return `http://localhost:3000${url}`;
+        }
+        
+        // 其他URL格式直接返回
+        return url;
+      } catch (error) {
+        console.error('[ERROR] 处理封面URL时出错:', error);
+        return '';
+      }
+    };
+
+    // 处理视频封面的核心函数，使用真实的封面URL
     const processVideoCover = (video) => {
-      // 直接内联SVG占位图，避免外部依赖
-      const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%2280%22 viewBox%3D%220 0 100 80%22%3E%3Crect width%3D%22100%22 height%3D%2280%22 fill%3D%22%23f5f5f5%22%3E%3C%2Frect%3E%3Ctext x%3D%2250%22 y%3D%2245%22 font-size%3D%2214%22 text-anchor%3D%22middle%22 fill%3D%22%23909399%22%3E视频封面%3C%2Ftext%3E%3C%2Fsvg%3E';
-      
-      // 1. 直接返回占位图，完全避免任何可能导致闪烁的URL加载
-      // 这是最稳定的解决方案，确保每个封面都显示占位图而不会尝试加载可能失败的图片
-      return DEFAULT_PLACEHOLDER;
-      
-      // 如果将来需要支持真实图片，可以取消下面的注释并注释掉上面的直接返回语句
-      /*
-      // 安全地获取封面URL，严格检查
-      const coverUrl = (video.coverUrl || video.thumbnail_url || '').trim();
-      
-      // 开发环境调试信息
-      if (process.env.NODE_ENV === 'development' && coverUrl) {
-        console.log('处理封面URL，视频ID:', video.id);
+      try {
+        // 直接内联SVG占位图，避免外部依赖
+        const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%2280%22 viewBox%3D%220 0 100 80%22%3E%3Crect width%3D%22100%22 height%3D%2280%22 fill%3D%22%23f5f5f5%22%3E%3C%2Frect%3E%3Ctext x%3D%2250%22 y%3D%2245%22 font-size%3D%2214%22 text-anchor%3D%22middle%22 fill%3D%22%23909399%22%3E视频封面%3C%2Ftext%3E%3C%2Fsvg%3E';
+        
+        // 安全地获取封面URL
+        const coverUrl = (video?.coverUrl || video?.thumbnail_url || '').trim();
+        
+        // 简化的调试信息
+        console.log('[SIMPLE DEBUG] 封面URL处理:', {
+          videoId: video?.id,
+          originalCoverUrl: coverUrl,
+          hasCover: !!coverUrl
+        });
+        
+        // 关键修复：为/uploads开头的URL添加完整的后端服务器地址
+        // 因为静态文件服务在后端的3000端口，而不是前端的5173端口
+        let finalUrl = coverUrl;
+        if (coverUrl && coverUrl.startsWith('/uploads/')) {
+          // 使用后端服务器地址：http://localhost:3000
+          finalUrl = `http://localhost:3000${coverUrl}`;
+          console.log('[SIMPLE DEBUG] 转换为完整URL:', finalUrl);
+        } else if (coverUrl) {
+          // 其他有效的URL格式也使用
+          console.log('[SIMPLE DEBUG] 使用其他URL:', finalUrl);
+        }
+        
+        // 如果有最终URL，使用它；否则使用占位图
+        if (finalUrl) {
+          return finalUrl;
+        }
+        
+        console.log('[SIMPLE DEBUG] 使用占位图');
+        return DEFAULT_PLACEHOLDER;
+      } catch (error) {
+        console.error('[ERROR] 处理视频封面时出错:', error);
+        return 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%2280%22 viewBox%3D%220 0 100 80%22%3E%3Crect width%3D%22100%22 height%3D%2280%22 fill%3D%22%23ffebee%22%3E%3C%2Frect%3E%3Ctext x%3D%2250%22 y%3D%2245%22 font-size%3D%2212%22 text-anchor%3D%22middle%22 fill%3D%22%23c62828%22%3E加载失败%3C%2Ftext%3E%3C%2Fsvg%3E';
       }
-      
-      // 严格验证URL格式，确保它是有效的图片URL且不是视频URL
-      const isVideoExt = (url) => {
-        const lowerUrl = url.toLowerCase();
-        return lowerUrl.includes('.mp4') || 
-               lowerUrl.includes('.avi') || 
-               lowerUrl.includes('.mov');
-      };
-      
-      // 只有符合严格条件的URL才会被使用，否则直接返回占位图
-      if (coverUrl && 
-          !isVideoExt(coverUrl) &&
-          (coverUrl.startsWith('http') || 
-           coverUrl.startsWith('/uploads/') || 
-           coverUrl.startsWith('data:image/'))) {
-        return coverUrl;
-      }
-      
-      return DEFAULT_PLACEHOLDER;
-      */
     }
     
     // 播放视频相关状态
@@ -822,6 +866,7 @@ export default {
       videoDialogVisible,
       currentVideo,
       processVideoCover,
+      processVideoCoverUrl,
       handleSearch,
       handleReset,
       handleAddVideo,
@@ -914,8 +959,8 @@ export default {
   position: relative;
   cursor: pointer;
   transition: transform 0.2s ease;
-  width: 100%;
-  height: 80px;
+  width: 80px;
+  height: 60px;
   overflow: hidden;
   border-radius: 4px;
 }
@@ -931,8 +976,8 @@ export default {
   transform: translate(-50%, -50%);
   background-color: rgba(0, 0, 0, 0.6);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 32px!important;
+  height: 32px!important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -957,5 +1002,10 @@ export default {
 
 .video-cover-container:hover img {
   filter: brightness(0.8);
+}
+
+.el-image{
+  width: 80px;
+  height: 60px!important;
 }
 </style>

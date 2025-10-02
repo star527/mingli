@@ -154,31 +154,36 @@ router.get('/admin/videos',
         console.log('[ADMIN VIDEO ROUTE] 第一个视频原始数据:', videosResult[0]);
       }
       
+      // 获取分类映射并处理可能的错误
+      let categoriesMap = {};
+      try {
+        const categories = await query('SELECT id, name FROM video_categories');
+        if (categories && Array.isArray(categories)) {
+          categories.forEach(cat => {
+            categoriesMap[cat.id] = cat.name;
+          });
+        }
+        console.log('[ADMIN VIDEO ROUTE] 分类映射初始化成功，分类数量:', Object.keys(categoriesMap).length);
+      } catch (err) {
+        console.warn('[ADMIN VIDEO ROUTE WARNING] 获取分类信息失败:', err.message);
+        categoriesMap = {};
+      }
+      
       // 格式化结果
       const videos = videosResult.map(video => {
-        // 映射分类名称到分类ID
-        const categoryIdMap = {
-          '基础课程': 1,
-          '进阶课程': 2,
-          '实战案例': 3, 
-          '行业解析': 4
-        };
-        
-        const categoryId = categoryIdMap[video.category] || null;
-        
         return {
           id: video.id,
           title: video.title,
-          category: video.category,
-          categoryId: categoryId, // 返回正确的分类ID
-          categoryName: video.category, // 使用category作为categoryName
-          coverUrl: video.thumbnail_url || '',
-          videoUrl: video.play_url || '',
+          category_id: video.category_id || 0,
+          categoryId: video.category_id || 0, // 返回正确的分类ID
+          categoryName: categoriesMap[video.category_id] || '未分类',
+          coverUrl: video.cover_url || '',
+          videoUrl: video.video_url || '',
           description: video.description || '',
           duration: video.duration || 0, // 确保时长正确传递
           playCount: video.view_count || 0,
           likeCount: video.like_count || 0,
-          status: video.status === 'active' ? 1 : 0,
+          status: video.status === 1 ? 1 : 0, // 确保status为数字
           createdAt: video.created_at
         };
       });
@@ -367,15 +372,15 @@ router.post('/admin/videos',
         id: videoId,
         title: videoData.title || '',
         description: videoData.description || '',
-        category: categoryName,
+        // 支持前端可能传递的categoryId或category字段
+        category_id: videoData.categoryId !== undefined ? videoData.categoryId : (videoData.category || 0),
         duration: duration,
-        play_url: videoData.videoUrl || '',
-        thumbnail_url: videoData.coverUrl || '',
-        status: videoData.status === 1 ? 'active' : 'inactive',
+        video_url: videoData.videoUrl || '', // 使用video_url而不是play_url
+        cover_url: videoData.coverUrl || '', // 使用cover_url而不是thumbnail_url
+        status: videoData.status || 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        view_count: 0,
-        like_count: 0
+        view_count: 0
       };
       
       console.log('[ADMIN VIDEO ROUTE] 准备插入数据库的数据:', dbData);
@@ -383,23 +388,22 @@ router.post('/admin/videos',
       // 插入数据 - 适配实际数据库表结构
       const insertQuery = `
         INSERT INTO videos 
-        (id, title, description, category, duration, play_url, thumbnail_url, status, created_at, updated_at, view_count, like_count)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, title, description, category_id, duration, video_url, cover_url, status, created_at, updated_at, view_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const insertParams = [
         dbData.id,
         dbData.title,
         dbData.description,
-        dbData.category,
+        dbData.category_id,
         dbData.duration,
-        dbData.play_url,
-        dbData.thumbnail_url,
+        dbData.video_url,
+        dbData.cover_url,
         dbData.status,
         dbData.created_at,
         dbData.updated_at,
-        dbData.view_count,
-        dbData.like_count
+        dbData.view_count
       ];
       
       try {
@@ -509,22 +513,19 @@ router.put('/admin/videos/:id',
         updateParams.push(videoData.title);
       }
       
-      // 处理分类更新
-      if (videoData.category !== undefined) {
-        updateFields.push('category = ?');
-        updateParams.push(videoData.category);
-      } else if (videoData.categoryId !== undefined) {
-        // 如果提供了categoryId，根据映射获取分类名称
-        const categoryName = categoryMap[videoData.categoryId.toString()] || '未分类';
-        updateFields.push('category = ?');
-        updateParams.push(categoryName);
+      // 处理分类更新 - 使用category_id而不是category
+      // 支持前端可能传递的category或categoryId字段
+      const categoryId = videoData.categoryId !== undefined ? videoData.categoryId : videoData.category;
+      if (categoryId !== undefined) {
+        updateFields.push('category_id = ?');
+        updateParams.push(categoryId);
       }
       if (videoData.coverUrl !== undefined) {
-        updateFields.push('thumbnail_url = ?');
+        updateFields.push('cover_url = ?');
         updateParams.push(videoData.coverUrl);
       }
       if (videoData.videoUrl !== undefined) {
-        updateFields.push('play_url = ?');
+        updateFields.push('video_url = ?');
         updateParams.push(videoData.videoUrl);
       }
       if (videoData.description !== undefined) {
@@ -536,8 +537,9 @@ router.put('/admin/videos/:id',
         updateParams.push(videoData.duration);
       }
       if (videoData.status !== undefined) {
+        // 保持status为数字类型，不转换为字符串
         updateFields.push('status = ?');
-        updateParams.push(videoData.status === 1 ? 'active' : 'inactive');
+        updateParams.push(videoData.status);
       }
       
       // 添加更新时间
@@ -601,7 +603,7 @@ router.delete('/admin/videos/:id',
       console.log('[ADMIN VIDEO ROUTE] 删除视频请求:', videoId);
       
       // 添加详细的视频存在检查，并获取视频文件路径
-      const checkQuery = 'SELECT id, storage_path, play_url, thumbnail_url FROM videos WHERE id = ?';
+      const checkQuery = 'SELECT id, video_url, cover_url FROM videos WHERE id = ?';
       console.log('[ADMIN VIDEO ROUTE] 检查视频是否存在并获取文件路径:', checkQuery, [videoId]);
       const checkResult = await query(checkQuery, [videoId]);
       console.log('[ADMIN VIDEO ROUTE] 视频存在检查结果:', checkResult.length > 0 ? '存在' : '不存在');
@@ -616,8 +618,8 @@ router.delete('/admin/videos/:id',
       
       // 提取视频文件路径
       const videoData = checkResult[0];
-      const videoFilePath = videoData.storage_path || videoData.play_url;
-      const coverFilePath = videoData.thumbnail_url;
+      const videoFilePath = videoData.video_url;
+      const coverFilePath = videoData.cover_url;
       console.log('[ADMIN VIDEO ROUTE] 视频文件路径:', videoFilePath);
       console.log('[ADMIN VIDEO ROUTE] 封面图片路径:', coverFilePath);
       

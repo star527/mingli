@@ -90,40 +90,18 @@ class Database {
         console.log('⚠️ videos表不存在，正在创建...');
         const createVideosTable = `
           CREATE TABLE IF NOT EXISTS videos (
-            id VARCHAR(64) PRIMARY KEY COMMENT '视频ID',
-            title VARCHAR(200) NOT NULL COMMENT '视频标题',
-            description TEXT COMMENT '视频描述',
-            category VARCHAR(50) NOT NULL COMMENT '分类',
-            
-            -- 视频信息
-            duration INT COMMENT '视频时长(秒)',
-            file_size BIGINT COMMENT '文件大小(字节)',
-            storage_path VARCHAR(500) COMMENT '存储路径',
-            play_url VARCHAR(500) COMMENT '播放地址',
-            thumbnail_url VARCHAR(500) COMMENT '缩略图',
-            
-            -- 业务信息
-            is_premium TINYINT DEFAULT 0 COMMENT '是否会员视频',
-            price DECIMAL(10,2) DEFAULT 0 COMMENT '价格',
-            status VARCHAR(20) DEFAULT 'active' COMMENT '状态：active/inactive',
-            
-            -- 统计信息
-            view_count INT DEFAULT 0 COMMENT '播放次数',
-            like_count INT DEFAULT 0 COMMENT '点赞数',
-            share_count INT DEFAULT 0 COMMENT '分享数',
-            
-            -- 扩展信息
-            chapters TEXT COMMENT '章节信息(JSON)',
-            available_qualities TEXT COMMENT '可用画质(JSON)',
-            transcoded_urls TEXT COMMENT '转码后的URLs(JSON)',
-            
-            -- 关联信息
-            creator_id VARCHAR(64) COMMENT '创建者ID',
-            
-            -- 时间戳
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间'
-          ) COMMENT '视频课程表';
+            id INTEGER PRIMARY KEY,
+            category_id INTEGER,
+            title TEXT NOT NULL,
+            description TEXT,
+            cover_url TEXT,
+            video_url TEXT NOT NULL,
+            duration INTEGER,
+            view_count INTEGER DEFAULT 0,
+            status INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+          );
         `;
         this.db.run(createVideosTable);
         console.log('✅ videos表创建成功');
