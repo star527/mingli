@@ -15,37 +15,50 @@ const path = require('path');
  * 视频课程相关路由
  */
 
-// 公开路由
-router.get('/videos', validationMiddleware.validateVideoSearch, VideoController.getVideoList);
+// 公开路由 - 暂时移除验证中间件
+router.get('/videos', VideoController.getVideoList);
 
-// 重写视频详情路由，使用内联函数直接处理请求，避免依赖外部中间件和控制器的复杂性
-router.get('/videos/:videoId', (req, res) => {
+/**
+ * 获取相关视频列表
+ * GET /api/videos/related/:videoId
+ */
+router.get('/videos/related/:videoId', VideoController.getRelatedVideos);
+
+/**
+ * 获取视频分类列表
+ * GET /api/videos/categories
+ */
+router.get('/videos/categories', async (req, res) => {
   try {
-    console.log('[DIRECT ROUTE DEBUG] 视频详情请求到达:', req.params);
-    const { videoId } = req.params;
+    // 从数据库直接查询所有分类
+    const { query } = require('../config/database');
     
-    // 直接返回响应，不经过任何中间件或控制器
-    return res.json({
+    // 查询所有分类（不分页，前端需要完整列表）
+    // 注意：直接使用query返回的结果，不使用解构赋值，确保返回数组
+    const categories = await query('SELECT id, name FROM video_categories ORDER BY sort_order ASC');
+    
+    // 确保返回的是数组
+    const categoriesArray = Array.isArray(categories) ? categories : [];
+    
+    console.log('分类列表API请求 - 返回分类数量:', categoriesArray.length);
+    console.log('分类列表API请求 - 分类数据:', categoriesArray);
+    
+    res.json({
       success: true,
-      message: '视频详情获取成功（直接路由）',
-      data: {
-        videoId: videoId,
-        title: '测试视频标题',
-        description: '这是通过直接路由返回的视频详情',
-        category: '八字基础',
-        isFree: true,
-        timestamp: new Date().toISOString()
-      }
+      data: categoriesArray
     });
   } catch (error) {
-    console.error('[DIRECT ROUTE ERROR]', error);
-    return res.status(500).json({
+    console.error('获取视频分类列表失败:', error);
+    res.json({
       success: false,
-      error: '服务器内部错误',
-      message: error.message
+      message: '获取分类失败',
+      error: error.message
     });
   }
 });
+
+// 使用控制器方法处理视频详情请求，获取真实数据库数据
+router.get('/videos/:videoId', VideoController.getVideoDetail);
 
 // 搜索视频（公开）
 router.get('/videos/search', validationMiddleware.validateVideoSearch, VideoController.searchVideos);

@@ -1,0 +1,249 @@
+/* pages/bazi/detail.wxss */
+.container {
+  padding: 30rpx;
+  background-color: var(--background-color);
+  min-height: 100vh;
+  padding-bottom: 150rpx; /* 为底部按钮留出空间 */
+}
+
+/* 头部样式 */
+.header {
+  background-color: #fff;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.basic-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.gender-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.birth-info {
+  font-size: 28rpx;
+  color: var(--text-regular);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 30rpx;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.favorite-icon {
+  color: #E6A23C;
+  font-size: 30rpx;
+  margin-right: 5rpx;
+}
+
+/* 八字排盘结果样式 */
+.bazi-result {
+  background-color: #fff;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.pillars-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.pillar-item {
+  width: 140rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pillar-item.main {
+  width: 180rpx;
+}
+
+.pillar-label {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  margin-bottom: 10rpx;
+}
+
+.pillar-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f8f8f8;
+  border-radius: 10rpx;
+  padding: 10rpx;
+  width: 120rpx;
+  margin-bottom: 10rpx;
+}
+
+.pillar-content.main {
+  background-color: var(--primary-color);
+  width: 150rpx;
+}
+
+.pillar-heaven, .pillar-earth {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin: 0 5rpx;
+}
+
+.pillar-heaven.main, .pillar-earth.main {
+  color: #fff;
+}
+
+.pillar-zodiac, .pillar-season, .pillar-info {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.life-master {
+  text-align: center;
+  font-size: 28rpx;
+  color: var(--text-regular);
+}
+
+.master-label {
+  color: var(--text-secondary);
+}
+
+.master-value {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+/* 解析部分样式 */
+.analysis-section {
+  background-color: #fff;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.analysis-item {
+  margin-bottom: 30rpx;
+}
+
+.analysis-item:last-child {
+  margin-bottom: 0;
+}
+
+.item-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 15rpx;
+  padding-left: 20rpx;
+  border-left: 4rpx solid var(--primary-color);
+}
+
+/* 五行分析样式 */
+.five-elements {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.element-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.element-name {
+  width: 60rpx;
+  font-size: 26rpx;
+  color: var(--text-regular);
+}
+
+.element-value {
+  width: 80rpx;
+  font-size: 26rpx;
+  color: var(--text-regular);
+  text-align: right;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 16rpx;
+  background-color: var(--border-light);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 8rpx;
+  transition: width 0.3s ease;
+}
+
+/* 文本内容样式 */
+.content-text {
+  font-size: 26rpx;
+  line-height: 1.8;
+  color: var(--text-regular);
+  padding: 0 10rpx;
+}
+
+/* 底部按钮样式 */
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background-color: #fff;
+  padding: 20rpx 30rpx;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+  gap: 20rpx;
+}
+
+.action-button {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 500;
+  border-radius: 10rpx;
+  background-color: #f0f0f0;
+  color: var(--text-regular);
+}
+
+.action-button.primary {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.action-button:active {
+  opacity: 0.8;
+}

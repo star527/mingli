@@ -1,0 +1,197 @@
+/* pages/user/index.wxss */
+.container {
+  min-height: 100vh;
+  background-color: var(--background-color);
+}
+
+/* 用户信息头部样式 */
+.user-header {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  background-color: #fff;
+  margin-bottom: 20rpx;
+}
+
+.avatar-container {
+  position: relative;
+  margin-right: 30rpx;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background-color: var(--border-extra-light);
+}
+
+.vip-badge {
+  position: absolute;
+  bottom: 0;
+  right: -10rpx;
+  background-color: #E6A23C;
+  color: #fff;
+  font-size: 22rpx;
+  padding: 5rpx 15rpx;
+  border-radius: 15rpx;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 34rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 10rpx;
+}
+
+.user-id {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.arrow {
+  color: var(--text-secondary);
+  font-size: 32rpx;
+}
+
+/* 统计信息样式 */
+.stats-container {
+  display: flex;
+  background-color: #fff;
+  padding: 40rpx 0;
+  margin-bottom: 20rpx;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 10rpx;
+}
+
+.stat-label {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.stat-divider {
+  width: 1rpx;
+  background-color: var(--border-light);
+  height: 60rpx;
+  align-self: center;
+}
+
+/* 菜单部分样式 */
+.menu-section {
+  background-color: #fff;
+  margin-bottom: 20rpx;
+  border-radius: 0;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid var(--border-light);
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-left {
+  display: flex;
+  align-items: center;
+}
+
+.menu-icon {
+  width: 50rpx;
+  height: 50rpx;
+  margin-right: 20rpx;
+  border-radius: 10rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 各种菜单图标的背景色 */
+.membership-icon {
+  background-color: #fff2e8;
+}
+
+.coupon-icon {
+  background-color: #fff7e6;
+}
+
+.address-icon {
+  background-color: #f0f9ff;
+}
+
+.settings-icon {
+  background-color: #f6ffed;
+}
+
+.help-icon {
+  background-color: #f0f5ff;
+}
+
+.about-icon {
+  background-color: #e6f7ff;
+}
+
+.menu-text {
+  font-size: 30rpx;
+  color: var(--text-regular);
+}
+
+.menu-right {
+  display: flex;
+  align-items: center;
+}
+
+.vip-text {
+  font-size: 26rpx;
+  color: #E6A23C;
+  margin-right: 10rpx;
+}
+
+.normal-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  margin-right: 10rpx;
+}
+
+.coupon-count {
+  font-size: 26rpx;
+  color: var(--danger-color);
+  margin-right: 10rpx;
+}
+
+.version {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  margin-right: 10rpx;
+}
+
+/* 退出登录按钮 */
+.logout-btn {
+  background-color: #fff;
+  color: var(--danger-color);
+  text-align: center;
+  padding: 30rpx 0;
+  margin-top: 40rpx;
+  font-size: 32rpx;
+  border-radius: 15rpx;
+  margin: 40rpx 30rpx;
+}

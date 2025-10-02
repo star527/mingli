@@ -1,0 +1,72 @@
+<!-- pages/index/index.wxml -->
+<view class="container">
+  <!-- 顶部轮播图 -->
+  <swiper class="banner" indicator-dots="true" autoplay="true" interval="5000" duration="1000">
+    <swiper-item>
+      <image src="/assets/images/banner1.webp" mode="aspectFill" class="banner-image"></image>
+    </swiper-item>
+    <swiper-item>
+      <image src="/assets/images/banner2.webp" mode="aspectFill" class="banner-image"></image>
+    </swiper-item>
+    <swiper-item>
+      <image src="/assets/images/banner3.webp" mode="aspectFill" class="banner-image"></image>
+    </swiper-item>
+  </swiper>
+
+  <!-- 功能导航 -->
+  <view class="nav-container">
+    <view class="nav-item" bindtap="navigateToBazi">
+      <view class="nav-icon bazi-icon"></view>
+      <text class="nav-text">八字排盘</text>
+    </view>
+    <view class="nav-item" bindtap="navigateToVideo">
+      <view class="nav-icon video-icon"></view>
+      <text class="nav-text">视频课程</text>
+    </view>
+    <view class="nav-item" bindtap="navigateToMembership">
+      <view class="nav-icon member-icon"></view>
+      <text class="nav-text">会员中心</text>
+    </view>
+    <view class="nav-item" bindtap="navigateToUser">
+      <view class="nav-icon user-icon"></view>
+      <text class="nav-text">个人中心</text>
+    </view>
+  </view>
+
+  <!-- 推荐内容 -->
+  <view class="recommend-section">
+    <view class="section-header">
+      <text class="section-title">热门推荐</text>
+      <view class="more" bindtap="navigateToMoreRecommend">
+        <text>更多</text>
+        <text class="arrow">→</text>
+      </view>
+    </view>
+    
+    <view class="recommend-list">
+      <view class="recommend-item" wx:for="{{recommendList}}" wx:key="id" bindtap="navigateToDetail" data-id="{{item.id}}" data-type="{{item.type}}">
+        <image src="{{item.image}}" mode="aspectFill" class="item-image"></image>
+        <text class="item-title">{{item.title}}</text>
+        <text class="item-desc">{{item.description}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最新资讯 -->
+  <view class="news-section">
+    <view class="section-header">
+      <text class="section-title">最新资讯</text>
+      <view class="more" bindtap="navigateToNews">
+        <text>更多</text>
+        <text class="arrow">→</text>
+      </view>
+    </view>
+    
+    <view class="news-list">
+      <view class="news-item" wx:for="{{newsList}}" wx:key="id" bindtap="navigateToNewsDetail" data-id="{{item.id}}">
+        <text class="news-title">{{item.title}}</text>
+        <text class="news-date">{{item.date}}</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,109 @@
+<!-- pages/user/index.wxml -->
+<view class="container">
+  <!-- 用户信息头部 -->
+  <view class="user-header" bindtap="navigateToUserInfo">
+    <view class="avatar-container">
+      <image class="avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <view class="vip-badge" wx:if="{{userInfo.isVip}}">
+        <text>VIP</text>
+      </view>
+    </view>
+    <view class="user-info">
+      <view class="user-name">{{userInfo.nickName || '点击登录'}}</view>
+      <view class="user-id">ID: {{userInfo.userId || '未登录'}}</view>
+    </view>
+    <view class="arrow">→</view>
+  </view>
+
+  <!-- 统计信息 -->
+  <view class="stats-container">
+    <view class="stat-item" bindtap="navigateToBaziHistory">
+      <view class="stat-value">{{stats.baziRecords}}</view>
+      <view class="stat-label">排盘记录</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="navigateToFavorites">
+      <view class="stat-value">{{stats.favorites}}</view>
+      <view class="stat-label">我的收藏</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="navigateToWatchHistory">
+      <view class="stat-value">{{stats.watchHistory}}</view>
+      <view class="stat-label">观看历史</view>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <view class="menu-item" bindtap="navigateToMembership">
+      <view class="menu-left">
+        <view class="menu-icon membership-icon"></view>
+        <view class="menu-text">会员中心</view>
+      </view>
+      <view class="menu-right">
+        <text wx:if="{{userInfo.isVip}}" class="vip-text">会员有效期至：{{userInfo.vipExpiryDate || '永久'}}</text>
+        <text wx:else class="normal-text">立即开通</text>
+        <text class="arrow">→</text>
+      </view>
+    </view>
+    
+    <view class="menu-item" bindtap="navigateToCoupon">
+      <view class="menu-left">
+        <view class="menu-icon coupon-icon"></view>
+        <view class="menu-text">优惠券</view>
+      </view>
+      <view class="menu-right">
+        <text wx:if="{{stats.coupons > 0}}" class="coupon-count">{{stats.coupons}}张</text>
+        <text class="arrow">→</text>
+      </view>
+    </view>
+    
+    <view class="menu-item" bindtap="navigateToAddress">
+      <view class="menu-left">
+        <view class="menu-icon address-icon"></view>
+        <view class="menu-text">收货地址</view>
+      </view>
+      <view class="menu-right">
+        <text class="arrow">→</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="menu-section">
+    <view class="menu-item" bindtap="navigateToSettings">
+      <view class="menu-left">
+        <view class="menu-icon settings-icon"></view>
+        <view class="menu-text">设置</view>
+      </view>
+      <view class="menu-right">
+        <text class="arrow">→</text>
+      </view>
+    </view>
+    
+    <view class="menu-item" bindtap="navigateToHelp">
+      <view class="menu-left">
+        <view class="menu-icon help-icon"></view>
+        <view class="menu-text">帮助与反馈</view>
+      </view>
+      <view class="menu-right">
+        <text class="arrow">→</text>
+      </view>
+    </view>
+    
+    <view class="menu-item" bindtap="navigateToAbout">
+      <view class="menu-left">
+        <view class="menu-icon about-icon"></view>
+        <view class="menu-text">关于我们</view>
+      </view>
+      <view class="menu-right">
+        <text class="version">{{appInfo.version}}</text>
+        <text class="arrow">→</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 退出登录按钮 -->
+  <view class="logout-btn" wx:if="{{isLoggedIn}}" bindtap="handleLogout">
+    退出登录
+  </view>
+</view>

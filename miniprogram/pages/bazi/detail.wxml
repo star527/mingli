@@ -1,0 +1,127 @@
+<!-- pages/bazi/detail.wxml -->
+<view class="container">
+  <!-- 页面头部 -->
+  <view class="header">
+    <view class="basic-info">
+      <text class="gender-text">{{baziData.gender === 1 ? '男命' : '女命'}}</text>
+      <text class="birth-info">{{baziData.birthDate}} {{baziData.birthTime}}</text>
+    </view>
+    <view class="actions">
+      <view class="action-btn" bindtap="toggleFavorite">
+        <text class="favorite-icon">{{isFavorite ? '★' : '☆'}}</text>
+        <text class="action-text">{{isFavorite ? '已收藏' : '收藏'}}</text>
+      </view>
+      <view class="action-btn" bindtap="shareBazi">
+        <text class="share-icon">分享</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 八字排盘结果 -->
+  <view class="bazi-result">
+    <view class="pillars-container">
+      <!-- 年柱 -->
+      <view class="pillar-item">
+        <text class="pillar-label">年</text>
+        <view class="pillar-content">
+          <text class="pillar-heaven">{{baziData.pillars.year[0]}}</text>
+          <text class="pillar-earth">{{baziData.pillars.year[1]}}</text>
+        </view>
+        <text class="pillar-zodiac">{{baziData.zodiacYear}}</text>
+      </view>
+      
+      <!-- 月柱 -->
+      <view class="pillar-item">
+        <text class="pillar-label">月</text>
+        <view class="pillar-content">
+          <text class="pillar-heaven">{{baziData.pillars.month[0]}}</text>
+          <text class="pillar-earth">{{baziData.pillars.month[1]}}</text>
+        </view>
+        <text class="pillar-season">{{baziData.seasonMonth}}</text>
+      </view>
+      
+      <!-- 日柱 -->
+      <view class="pillar-item main">
+        <text class="pillar-label">日</text>
+        <view class="pillar-content main">
+          <text class="pillar-heaven main">{{baziData.pillars.day[0]}}</text>
+          <text class="pillar-earth main">{{baziData.pillars.day[1]}}</text>
+        </view>
+        <text class="pillar-info">{{baziData.dayStem}}</text>
+      </view>
+      
+      <!-- 时柱 -->
+      <view class="pillar-item">
+        <text class="pillar-label">时</text>
+        <view class="pillar-content">
+          <text class="pillar-heaven">{{baziData.pillars.hour[0]}}</text>
+          <text class="pillar-earth">{{baziData.pillars.hour[1]}}</text>
+        </view>
+        <text class="pillar-info">{{baziData.timeInfo}}</text>
+      </view>
+    </view>
+    
+    <!-- 命主信息 -->
+    <view class="life-master">
+      <text class="master-label">命主：</text>
+      <text class="master-value">{{baziData.lifeMaster}}</text>
+    </view>
+  </view>
+
+  <!-- 命理解析 -->
+  <view class="analysis-section">
+    <view class="section-title">命理解析</view>
+    
+    <!-- 五行分析 -->
+    <view class="analysis-item">
+      <view class="item-title">五行分析</view>
+      <view class="five-elements">
+        <view wx:for="{{baziData.fiveElements}}" wx:key="name" class="element-item">
+          <text class="element-name">{{item.name}}</text>
+          <text class="element-value">{{item.value}}%</text>
+          <view class="progress-bar">
+            <view class="progress" style="width: {{item.value}}%" data-color="{{item.color}}"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 性格分析 -->
+    <view class="analysis-item">
+      <view class="item-title">性格分析</view>
+      <view class="content-text">
+        {{baziData.personalityAnalysis}}
+      </view>
+    </view>
+    
+    <!-- 财运分析 -->
+    <view class="analysis-item">
+      <view class="item-title">财运分析</view>
+      <view class="content-text">
+        {{baziData.wealthAnalysis}}
+      </view>
+    </view>
+    
+    <!-- 婚姻分析 -->
+    <view class="analysis-item">
+      <view class="item-title">婚姻分析</view>
+      <view class="content-text">
+        {{baziData.marriageAnalysis}}
+      </view>
+    </view>
+    
+    <!-- 健康分析 -->
+    <view class="analysis-item">
+      <view class="item-title">健康分析</view>
+      <view class="content-text">
+        {{baziData.healthAnalysis}}
+      </view>
+    </view>
+  </view>
+  
+  <!-- 底部按钮 -->
+  <view class="bottom-actions">
+    <view class="action-button" bindtap="saveRecord">保存记录</view>
+    <view class="action-button primary" bindtap="generateReport">生成详细报告</view>
+  </view>
+</view>

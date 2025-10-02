@@ -261,6 +261,33 @@ router.get('/api/membership/info',
 // ==================== 视频课程接口 ====================
 
 /**
+ * 获取视频分类列表
+ * GET /api/videos/categories
+ */
+router.get('/videos/categories', async (req, res) => {
+  try {
+    // 直接调用管理员控制器的获取分类方法
+    // 这是一个公开接口，不需要认证
+    const { query } = require('../config/database');
+    
+    // 查询所有分类（不分页，前端需要完整列表）
+    const [categories] = await query('SELECT id, name FROM video_categories ORDER BY sort_order ASC');
+    
+    res.json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    console.error('获取视频分类列表失败:', error);
+    res.json({
+      success: false,
+      message: '获取分类失败',
+      error: error.message
+    });
+  }
+});
+
+/**
  * 获取视频课程列表
  * GET /api/videos
  */

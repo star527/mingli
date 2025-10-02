@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .video-container {
+            width: 100%;
+            max-width: 640px;
+            margin: 20px auto;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: auto;
+        }
+        .test-urls {
+            margin: 20px 0;
+            text-align: left;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .status {
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>视频播放测试</h1>
+    
+    <div class="test-urls">
+        <p>测试URL:</p>
+        <p>1. 本地服务器: http://127.0.0.1:3000/uploads/video/video-1759415709580-222392682.mp4</p>
+    </div>
+    
+    <div class="video-container">
+        <video id="testVideo" controls>
+            <source src="http://127.0.0.1:3000/uploads/video/video-1759415709580-222392682.mp4" type="video/mp4">
+            您的浏览器不支持HTML5视频播放。
+        </video>
+    </div>
+    
+    <div class="controls">
+        <button onclick="testVideoUrl('http://127.0.0.1:3000/uploads/video/video-1759415709580-222392682.mp4')">测试127.0.0.1</button>
+        <button onclick="testVideoUrl('http://localhost:3000/uploads/video/video-1759415709580-222392682.mp4')">测试localhost</button>
+    </div>
+    
+    <div id="status" class="status"></div>
+    
+    <script>
+        const video = document.getElementById('testVideo');
+        const statusDiv = document.getElementById('status');
+        
+        // 视频事件监听
+        video.addEventListener('loadedmetadata', () => {
+            updateStatus('success', '视频元数据加载成功！视频时长：' + video.duration.toFixed(2) + '秒');
+        });
+        
+        video.addEventListener('error', (e) => {
+            updateStatus('error', '视频加载错误: ' + getVideoErrorMessage(e));
+        });
+        
+        function testVideoUrl(url) {
+            updateStatus('success', '正在测试URL: ' + url);
+            video.src = url;
+            video.load();
+            
+            // 同时测试直接的网络请求
+            fetchVideo(url);
+        }
+        
+        function fetchVideo(url) {
+            updateStatus('success', '正在发送直接网络请求...');
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Range': 'bytes=0-100'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    updateStatus('success', '网络请求成功！状态码: ' + response.status + '\n响应头: ' + JSON.stringify(Object.fromEntries(response.headers), null, 2));
+                } else {
+                    updateStatus('error', '网络请求失败，状态码: ' + response.status);
+                }
+            })
+            .catch(error => {
+                updateStatus('error', '网络请求错误: ' + error.message);
+            });
+        }
+        
+        function updateStatus(type, message) {
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+        }
+        
+        function getVideoErrorMessage(e) {
+            const error = video.error;
+            switch(error.code) {
+                case 1: return "用户中止了获取过程";
+                case 2: return "网络错误导致获取过程失败";
+                case 3: return "解码错误";
+                case 4: return "找不到支持的视频格式或MIME类型";
+                default: return "未知错误" + error.code;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -66,10 +66,11 @@ class VideoService {
         return progress;
       },
       
-      getRelatedVideos: async (videoId, category, limit = 6) => {
+      getRelatedVideos: async (videoId, categoryId, limit = 6) => {
+        // 使用category_id而不是category名称，并且使用状态1（激活）而不是'ready'
         return await query(
-          'SELECT * FROM videos WHERE id != ? AND category = ? AND status = ? LIMIT ?',
-          [videoId, category, 'ready', limit]
+          'SELECT * FROM videos WHERE id != ? AND category_id = ? AND status = ? LIMIT ?',
+          [videoId, categoryId, 1, limit]
         );
       },
       
@@ -491,19 +492,39 @@ class VideoService {
         categoriesMap = {};
       }
       
-      const videos = await this.db.getVideos({
-        page,
-        limit,
-        category,
-        isFree
-      });
+      // 获取视频列表 - 放宽状态过滤，确保能返回管理后台中的视频
+      let videos = [];
+      try {
+        videos = await this.db.getVideos({
+          page,
+          limit,
+          category,
+          isFree
+        });
+        
+        // 如果没有找到激活状态的视频，尝试获取所有状态的视频
+        if (videos.length === 0) {
+          console.log('未找到激活状态的视频，尝试获取所有状态的视频');
+          const allVideos = await query(
+            'SELECT * FROM videos ' + 
+            (category ? 'WHERE category_id = ? ' : '') +
+            'ORDER BY created_at DESC ' +
+            'LIMIT ? OFFSET ?',
+            [...(category ? [parseInt(category)] : []), limit, (page - 1) * limit]
+          );
+          videos = Array.isArray(allVideos) ? allVideos : [];
+        }
+      } catch (err) {
+        console.error('获取视频列表失败:', err);
+        videos = [];
+      }
       
-      // 获取总数的查询
-      let countSql = 'SELECT COUNT(*) as total FROM videos WHERE status = ?';
-      const countParams = [1]; // 使用数字1表示激活状态
+      // 获取总数的查询 - 放宽状态过滤，确保能统计所有视频
+      let countSql = 'SELECT COUNT(*) as total FROM videos';
+      const countParams = [];
       
       if (category) {
-        countSql += ' AND category_id = ?';
+        countSql += ' WHERE category_id = ?';
         countParams.push(parseInt(category));
       }
       
@@ -930,4 +951,4 @@ class VideoService {
   }
 }
 
-module.exports = VideoService;
+module.exports = new VideoService();

@@ -1,0 +1,138 @@
+/* 全局CSS变量 */
+:root {
+  --primary-color: #409EFF;
+  --success-color: #67C23A;
+  --warning-color: #E6A23C;
+  --danger-color: #F56C6C;
+  --info-color: #909399;
+  
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #C0C4CC;
+  
+  --border-extra-light: #F5F7FA;
+  --border-light: #E4E7ED;
+  --border-base: #DCDFE6;
+  --border-heavy: #C0C4CC;
+  
+  --background-color: #F5F7FA;
+}
+
+/* 全局重置样式 */
+page, view, text, image, button, input {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+page {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  background-color: var(--background-color);
+}
+
+/* 常用布局样式 */
+.flex {
+  display: flex;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+/* 常用间距 */
+.m-10 { margin: 10rpx; }
+.m-20 { margin: 20rpx; }
+.m-30 { margin: 30rpx; }
+.p-10 { padding: 10rpx; }
+.p-20 { padding: 20rpx; }
+.p-30 { padding: 30rpx; }
+
+/* 常用颜色 */
+.text-primary { color: var(--text-primary); }
+.text-regular { color: var(--text-regular); }
+.text-secondary { color: var(--text-secondary); }
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-danger { color: var(--danger-color); }
+
+/* 按钮样式 */
+.btn {
+  padding: 20rpx 40rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  text-align: center;
+  display: inline-block;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.btn-disabled {
+  background-color: var(--border-light);
+  color: var(--text-placeholder);
+}
+
+/* 输入框样式 */
+.input {
+  width: 100%;
+  padding: 20rpx 25rpx;
+  border: 1rpx solid var(--border-base);
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
+.input:focus {
+  border-color: var(--primary-color);
+}
+
+/* 卡片样式 */
+.card {
+  background-color: #fff;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 加载动画 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+  color: var(--text-secondary);
+}
+
+/* 标签样式 */
+.tag {
+  display: inline-block;
+  padding: 5rpx 15rpx;
+  border-radius: 15rpx;
+  font-size: 24rpx;
+  background-color: var(--border-extra-light);
+  color: var(--text-secondary);
+  margin-right: 10rpx;
+  margin-bottom: 10rpx;
+}

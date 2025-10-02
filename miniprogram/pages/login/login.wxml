@@ -1,0 +1,23 @@
+<!-- pages/login/login.wxml -->
+<view class="login-container">
+  <view class="logo-container">
+    <image class="logo" src="/assets/images/logo.png" mode="aspectFit"></image>
+    <text class="app-name">AI算命八字排盘</text>
+  </view>
+  
+  <view class="login-form">
+    <view class="form-item">
+      <view class="wechat-login" bindtap="handleWechatLogin">
+        <image class="wechat-icon" src="/assets/icons/wechat.png" mode="aspectFit"></image>
+        <text class="wechat-text">微信一键登录</text>
+      </view>
+    </view>
+    
+    <view class="agreement">
+      <text>登录即表示您同意</text>
+      <text class="link" bindtap="showPrivacy">《隐私政策》</text>
+      <text>和</text>
+      <text class="link" bindtap="showTerms">《用户协议》</text>
+    </view>
+  </view>
+</view>

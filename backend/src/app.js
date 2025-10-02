@@ -35,10 +35,13 @@ class App {
       crossOriginResourcePolicy: { policy: "cross-origin" }
     }));
     
-    // CORS配置
+    // CORS配置 - 允许所有来源访问，适合开发环境
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || 'http://localhost:8080',
-      credentials: true
+      origin: '*',  // 允许所有来源
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true,
+      maxAge: 86400 // 预检请求结果缓存24小时
     }));
     
     // 压缩响应
@@ -85,6 +88,96 @@ class App {
         data: { videoId: '1', test: 'success' }
       });
     });
+    
+    // 视频访问代理API端点 - 简化版本，避免HTTP头重复设置问题
+    this.app.get('/api/video-play/:filename', (req, res) => {
+      const { filename } = req.params;
+      const path = require('path');
+      const fs = require('fs');
+      const videoPath = path.join(__dirname, '../public/uploads/video', filename);
+      
+      // 首先检查文件是否存在
+      fs.stat(videoPath, (err, stats) => {
+        if (err) {
+          console.error('视频文件不存在:', filename, err);
+          return res.status(404).json({
+            success: false,
+            message: '视频文件不存在'
+          });
+        }
+        
+        // 设置CORS头和内容类型
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
+        res.setHeader('Content-Type', 'video/mp4');
+        
+        // 处理范围请求
+        const range = req.headers.range;
+        if (range) {
+          try {
+            // 解析范围请求
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
+            
+            // 创建流
+            const stream = fs.createReadStream(videoPath, { start, end });
+            
+            // 设置响应头
+            res.writeHead(206, {
+              'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+              'Accept-Ranges': 'bytes',
+              'Content-Length': end - start + 1
+            });
+            
+            // 错误处理
+            stream.on('error', (streamErr) => {
+              console.error('视频流错误:', streamErr);
+              if (!res.headersSent) {
+                res.status(500).json({
+                  success: false,
+                  message: '视频流读取失败'
+                });
+              }
+            });
+            
+            // 发送流
+            stream.pipe(res);
+          } catch (e) {
+            console.error('范围请求处理错误:', e);
+            // 回退到完整文件发送
+            sendFullVideo(res, videoPath);
+          }
+        } else {
+          // 直接发送完整文件
+          sendFullVideo(res, videoPath);
+        }
+      });
+    });
+    
+    // 辅助函数：发送完整视频文件
+    function sendFullVideo(res, videoPath) {
+      const fs = require('fs');
+      
+      // 创建读取流
+      const stream = fs.createReadStream(videoPath);
+      
+      // 错误处理
+      stream.on('error', (err) => {
+        console.error('发送视频文件失败:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            message: '视频文件读取失败'
+          });
+        }
+      });
+      
+      // 发送流
+      stream.pipe(res);
+    }
     
     // 根路径
     this.app.get('/', (req, res) => {

@@ -1,0 +1,70 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/bazi/index",
+    "pages/bazi/detail",
+    "pages/membership/index",
+    "pages/video/index",
+    "pages/video/detail",
+    "pages/user/index",
+    "pages/user/withdrawal"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "AI算命八字排盘",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999",
+    "selectedColor": "#409EFF",
+    "backgroundColor": "#fff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home_active.png"
+      },
+      {
+        "pagePath": "pages/bazi/index",
+        "text": "八字排盘",
+        "iconPath": "assets/icons/bazi.png",
+        "selectedIconPath": "assets/icons/bazi_active.png"
+      },
+      {
+        "pagePath": "pages/video/index",
+        "text": "视频课程",
+        "iconPath": "assets/icons/video.png",
+        "selectedIconPath": "assets/icons/video_active.png"
+      },
+      {
+        "pagePath": "pages/user/index",
+        "text": "我的",
+        "iconPath": "assets/icons/user.png",
+        "selectedIconPath": "assets/icons/user_active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "permission": {
+    "scope.userInfo": {
+      "desc": "你的信息将用于完善用户资料"
+    },
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于提供个性化服务"
+    }
+  },
+  "requiredBackgroundModes": ["audio"],
+  "networkTimeout": {
+    "request": 10000,
+    "connectSocket": 10000,
+    "uploadFile": 10000,
+    "downloadFile": 60000
+  },
+  "downloadFileDomain": ["http://localhost:3000", "http://127.0.0.1:3000"],
+  "requestDomain": ["http://localhost:3000", "http://127.0.0.1:3000"]
+}

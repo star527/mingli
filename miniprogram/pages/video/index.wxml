@@ -1,0 +1,44 @@
+<!-- pages/video/index.wxml -->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input" bindtap="navigateToSearch">
+      <text class="search-icon">🔍</text>
+      <text class="placeholder">搜索视频课程</text>
+    </view>
+  </view>
+
+  <!-- 分类标签 -->
+  <view class="category-tabs">
+    <scroll-view scroll-x="true" enable-flex>
+      <view class="tabs-container">
+        <view wx:for="{{categories}}" wx:key="id" class="tab-item {{activeCategory === item.id ? 'active' : ''}}" bindtap="selectCategory" data-id="{{item.id}}">
+          <text>{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 视频列表 -->
+  <view class="video-list">
+    <view wx:if="{{videoList.length > 0}}">
+      <view wx:for="{{videoList}}" wx:key="id" class="video-item" bindtap="playVideo" data-id="{{item.id}}">
+        <view class="video-cover">
+          <image src="{{item.cover}}" mode="aspectFill" class="cover-image"></image>
+          <view class="play-icon">▶</view>
+          <view class="duration">{{item.duration}}</view>
+        </view>
+        <view class="video-info">
+          <text class="video-title">{{item.title}}</text>
+          <text class="video-meta">{{item.viewCount}}次观看 · {{item.publishTime}}</text>
+          <view class="video-tags">
+            <view wx:for="{{item.tags}}" wx:for-item="tag" wx:key="tag" class="tag-item">{{tag}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view wx:else class="empty-state">
+      <text>暂无相关视频</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,91 @@
+<!--pages/video/detail.wxml-->
+<view class="video-detail-container">
+  <!-- 加载中的骨架屏 -->
+  <view class="loading-skeleton" wx:if="{{isLoading && !videoDetail}}">
+    <view class="video-placeholder"></view>
+    <view class="info-placeholder">
+      <view class="title-placeholder"></view>
+      <view class="meta-placeholder"></view>
+      <view class="description-placeholder"></view>
+    </view>
+  </view>
+
+  <!-- 视频播放器 -->
+  <view class="video-player" wx:if="{{!isLoading || videoDetail}}">
+    <video
+      id="myVideo"
+      src="{{videoDetail ? videoDetail.videoUrl : ''}}"
+      poster="{{videoDetail ? videoDetail.coverUrl : ''}}"
+      bindplay="onVideoPlay"
+      bindpause="onVideoPause"
+      bindtimeupdate="onTimeUpdate"
+      bindended="onEnded"
+      binderror="onVideoError"
+      controls
+      autoplay="{{false}}"
+      object-fit="cover"
+      show-fullscreen-btn
+      show-play-btn
+      show-center-play-btn
+      enable-progress-gesture
+      enable-play-gesture
+      playsinline
+    ></video>
+  </view>
+
+  <!-- 视频信息 -->
+  <view class="video-info" wx:if="{{videoDetail}}">
+    <view class="video-title">{{videoDetail.title}}</view>
+    
+    <view class="video-meta">
+      <view class="meta-item">
+        <text class="meta-label">作者: </text>
+        <text class="meta-value">{{videoDetail.author.name}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-label">发布时间: </text>
+        <text class="meta-value">{{videoDetail.publishTime}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-label">播放: </text>
+        <text class="meta-value">{{videoDetail.viewCount}}</text>
+      </view>
+    </view>
+
+    <!-- 标签 -->
+    <view class="video-tags" wx:if="{{videoDetail.tags && videoDetail.tags.length > 0}}">
+      <block wx:for="{{videoDetail.tags}}" wx:key="*this">
+        <view class="tag-item">{{item}}</view>
+      </block>
+    </view>
+
+    <!-- 视频描述 -->
+    <view class="video-description">
+      <view class="section-title">课程介绍</view>
+      <text class="description-content">{{videoDetail.description}}</text>
+    </view>
+  </view>
+
+  <!-- 相关视频 -->
+  <view class="related-videos" wx:if="{{relatedVideos && relatedVideos.length > 0}}">
+    <view class="section-title">相关推荐</view>
+    <view class="related-list">
+      <block wx:for="{{relatedVideos}}" wx:key="id">
+        <view class="related-item" bindtap="navigateToVideo" data-id="{{item.id}}">
+          <view class="related-video-wrapper">
+            <image class="related-cover" src="{{item.cover}}" mode="aspectFill"></image>
+            <view class="duration">{{item.duration}}</view>
+          </view>
+          <view class="related-title">{{item.title}}</view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 错误提示 -->
+  <view class="error-container" wx:if="{{!isLoading && !videoDetail && videoId}}">
+    <view class="error-icon">⚠️</view>
+    <text class="error-text">无法加载视频内容</text>
+    <button class="retry-btn" bindtap="loadVideoDetail">重试</button>
+  </view>
+</view>

@@ -1,0 +1,206 @@
+/* pages/bazi/index.wxss */
+.container {
+  padding: 30rpx;
+  background-color: var(--background-color);
+  min-height: 100vh;
+}
+
+/* 排盘表单样式 */
+.bazi-form {
+  background-color: #fff;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.form-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  text-align: center;
+  color: var(--text-primary);
+  margin-bottom: 40rpx;
+}
+
+.form-group {
+  margin-bottom: 30rpx;
+}
+
+.form-label {
+  font-size: 30rpx;
+  color: var(--text-regular);
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+/* 性别选择器 */
+.gender-selector {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.gender-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 30rpx;
+  color: var(--text-regular);
+  background-color: #fff;
+}
+
+.gender-item.selected {
+  color: #fff;
+  background-color: var(--primary-color);
+}
+
+/* 日期时间选择器 */
+.date-picker, .time-picker {
+  border: 1px solid var(--border-color);
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+}
+
+.picker {
+  height: 80rpx;
+  line-height: 80rpx;
+  color: var(--text-regular);
+  font-size: 30rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.picker::after {
+  content: '>';
+  color: var(--text-secondary);
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+/* 计算按钮 */
+.calculate-btn {
+  background-color: var(--primary-color);
+  color: #fff;
+  font-size: 32rpx;
+  text-align: center;
+  padding: 25rpx 0;
+  border-radius: 10rpx;
+  margin-top: 40rpx;
+  font-weight: 500;
+}
+
+.calculate-btn:active {
+  opacity: 0.8;
+}
+
+/* 历史记录样式 */
+.history-section {
+  background-color: #fff;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.view-all {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+}
+
+.arrow {
+  margin-left: 5rpx;
+}
+
+/* 历史记录列表 */
+.history-list {
+  max-height: 600rpx;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 20rpx 0;
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.record-info {
+  display: flex;
+  margin-bottom: 10rpx;
+}
+
+.record-date {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  margin-right: 20rpx;
+}
+
+.record-time {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.record-pillars {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.pillar-item {
+  background-color: var(--border-extra-light);
+  color: var(--text-regular);
+  padding: 8rpx 15rpx;
+  border-radius: 5rpx;
+  margin-right: 10rpx;
+  margin-bottom: 10rpx;
+  font-size: 26rpx;
+}
+
+.record-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-icon {
+  font-size: 28rpx;
+  margin-bottom: 10rpx;
+}
+
+.favorite {
+  color: #E6A23C;
+}
+
+.delete {
+  color: var(--danger-color);
+}
+
+/* 空记录提示 */
+.empty-history {
+  text-align: center;
+  padding: 60rpx 0;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+}

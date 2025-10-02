@@ -267,7 +267,8 @@ class ValidationMiddleware {
   validateVideoSearch() {
     const validation = [
       query('q').optional().isLength({ max: 100 }).withMessage('搜索关键词不能超过100字符'),
-      query('category').optional().isIn(['八字基础', '命理分析', '实战案例', '风水知识']).withMessage('分类错误'),
+      // 允许数字类型的分类ID，不限制具体值
+      query('category').optional().isInt({ min: 1 }).withMessage('分类ID必须为正整数'),
       query('sortBy').optional().isIn(['newest', 'popularity', 'price']).withMessage('排序方式错误'),
       query('minPrice').optional().isFloat({ min: 0 }).withMessage('最低价格必须大于等于0'),
       query('maxPrice').optional().isFloat({ min: 0 }).withMessage('最高价格必须大于等于0'),
