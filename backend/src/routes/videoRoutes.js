@@ -118,10 +118,25 @@ router.get('/admin/videos',
       let whereClause = '';
       let params = [];
       
-      if (title) {
-        whereClause = 'WHERE title LIKE ?';
-        params.push(`%${title}%`);
-        console.log('[ADMIN VIDEO ROUTE] 带标题过滤:', whereClause, params);
+      // 获取分类参数
+      const category = req.query.category;
+      console.log('[ADMIN VIDEO ROUTE] 请求参数:', { page, pageSize, title, category });
+      
+      // 构建WHERE子句
+      if (title || category) {
+        whereClause = 'WHERE';
+        
+        if (title) {
+          whereClause += ' title LIKE ?';
+          params.push(`%${title}%`);
+        }
+        
+        if (category) {
+          whereClause += (title ? ' AND' : '') + ' category_id = ?';
+          params.push(parseInt(category));
+        }
+        
+        console.log('[ADMIN VIDEO ROUTE] 带过滤条件:', whereClause, params);
       }
       
       // 查询总数

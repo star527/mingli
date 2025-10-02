@@ -17,14 +17,14 @@
         <el-input v-model="searchForm.title" placeholder="请输入视频标题" clearable />
       </el-form-item>
       <el-form-item label="分类">
-        <el-select v-model="searchForm.category" placeholder="选择分类" clearable>
+        <el-select v-model="searchForm.category" placeholder="选择分类" clearable :popper-append-to-body="false" class="auto-width-select">
           <el-option v-for="category in categories" :key="category.value" :label="category.label" :value="category.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="searchForm.status" placeholder="选择状态" clearable>
-          <el-option label="上架" value="1" />
-          <el-option label="下架" value="0" />
+        <el-select v-model="searchForm.status" placeholder="选择状态" clearable :popper-append-to-body="false" class="auto-width-select">
+          <el-option label="上架" :value="'1'" />
+          <el-option label="下架" :value="'0'" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -109,7 +109,7 @@
           <el-input v-model="videoForm.title" placeholder="请输入视频标题" />
         </el-form-item>
         <el-form-item label="视频分类" prop="categoryId">
-          <el-select v-model="videoForm.categoryId" placeholder="选择分类">
+          <el-select v-model="videoForm.categoryId" placeholder="选择分类" :popper-append-to-body="false" class="auto-width-select">
             <el-option v-for="category in categories" :key="category.value" :label="category.label" :value="category.value" />
           </el-select>
         </el-form-item>
@@ -190,12 +190,11 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox, ElPagination } from 'element-plus'
 import axios from 'axios'
 import { Plus, VideoPlay } from '@element-plus/icons-vue'
-import { getVideoList, createVideo, updateVideo, deleteVideo, uploadCover, uploadVideo } from '@/api'
-import { videoCategoryApi } from '@/api'
+import { videoApi, videoCategoryApi } from '@/api'
 import { formatDateTime } from '@/utils/date'
 
 export default {
@@ -217,6 +216,11 @@ export default {
       category: '',
       status: ''
     })
+    
+    // 添加调试监听器，监控searchForm的变化
+    watch(searchForm, (newVal) => {
+      console.log('searchForm变化:', { ...newVal })
+    }, { deep: true })
     
     // 视频表单
     const videoForm = reactive({
@@ -244,24 +248,28 @@ export default {
     
     // 加载分类列表
     const loadCategories = async () => {
+      console.log('开始加载分类数据')
       try {
         const response = await videoCategoryApi.list({ pageSize: 100 }) // 获取所有分类
-        if (response.code === 200 && response.data) {
+        console.log('分类API响应:', response)
+        if (response.code === 200 && response.data && response.data.items) {
           // 转换为element-plus select需要的格式
           categories.value = response.data.items.map(cat => ({
             label: cat.name,
-            value: cat.id
+            value: String(cat.id) // 确保value是字符串类型，与el-select兼容
           }))
+          console.log('转换后的分类数据:', categories.value)
         }
       } catch (error) {
         console.error('加载分类失败:', error)
         // 如果API调用失败，使用默认分类作为备用
         categories.value = [
-          { label: '基础课程', value: 1 },
-          { label: '进阶课程', value: 2 },
-          { label: '实战案例', value: 3 },
-          { label: '行业解析', value: 4 }
+          { label: '基础课程', value: '1' }, // 确保value是字符串类型
+          { label: '进阶课程', value: '2' }, // 确保value是字符串类型
+          { label: '实战案例', value: '3' }, // 确保value是字符串类型
+          { label: '行业解析', value: '4' }  // 确保value是字符串类型
         ]
+        console.log('使用备用分类数据:', categories.value)
       }
     }
     
@@ -324,31 +332,65 @@ export default {
     const loadVideoList = async () => {
       loading.value = true
       try {
-        // 构建查询参数
+        // 构建查询参数，在传递时进行类型转换，不修改原searchForm
         const params = {
           page: pagination.currentPage,
           pageSize: pagination.pageSize,
           title: searchForm.title,
-          categoryId: searchForm.category || undefined,
-          status: searchForm.status || undefined
+          // 确保category参数正确传递，并添加详细日志
+          category: searchForm.category ? Number(searchForm.category) : undefined,
+          status: searchForm.status ? Number(searchForm.status) : undefined
+        }
+        console.log('构建的API参数:', { ...params })
+        // 添加分类搜索的详细日志
+        if (searchForm.category) {
+          const selectedCategory = categories.value.find(c => c.value === searchForm.category)
+          console.log('当前选择的分类:', selectedCategory ? selectedCategory.label : '未知分类', 'ID:', searchForm.category)
+        } else {
+          console.log('未选择分类，显示全部')
         }
         
         // 调用后端API获取视频列表
-        const response = await getVideoList(params)
+        const response = await videoApi.getVideoList(params)
+        
+        console.log('API响应格式:', response)
+        
+        // 同时支持两种可能的响应格式：{code: 200, data: {...}} 和 {success: true, data: {...}}
+        let success = false
+        let videoData = []
+        let totalCount = 0
         
         if (response.code === 200 && response.data) {
+          // 格式1：{code: 200, data: {list: [...]}}
+          success = true
+          videoData = response.data.list || []
+          totalCount = response.data.total || 0
+          console.log('使用code格式响应，列表长度:', videoData.length)
+        } else if (response.success === true && response.data) {
+          // 格式2：{success: true, data: {videos: [...], pagination: {...}}}
+          success = true
+          videoData = response.data.videos || []
+          totalCount = response.data.pagination?.total || response.data.total || 0
+          console.log('使用success格式响应，列表长度:', videoData.length)
+        }
+        
+        if (success) {
           // 更新视频列表和分页信息
-          videoList.value = response.data.list || []
-          pagination.total = response.data.total || 0
+          videoList.value = videoData
+          pagination.total = totalCount
           
           // 确保每个视频都有categoryName，注意类型转换
-          videoList.value = videoList.value.map(video => ({
-            ...video,
-            categoryName: categories.value.find(c => Number(c.value) === Number(video.categoryId))?.label || '未分类',
-            // 确保categoryId是数字类型
-            categoryId: Number(video.categoryId) || 0
-          }))
+          videoList.value = videoList.value.map(video => {
+            // 同时支持category_id和categoryId字段
+            const catId = video.category_id !== undefined ? video.category_id : video.categoryId
+            return {
+              ...video,
+              categoryName: categories.value.find(c => Number(c.value) === Number(catId))?.label || '未分类',
+              categoryId: Number(catId) || 0
+            }
+          })
         } else {
+          console.error('API响应不符合预期:', response)
           throw new Error('获取视频列表失败')
         }
         
@@ -363,6 +405,9 @@ export default {
     // 搜索
     const handleSearch = () => {
       pagination.currentPage = 1
+      // 调试：打印搜索前的searchForm值
+      console.log('搜索前searchForm值:', { ...searchForm })
+      // 不直接修改searchForm，避免影响下拉框显示
       loadVideoList()
     }
     
@@ -476,7 +521,7 @@ export default {
         
         if (dialogType.value === 'add') {
           // 调用创建视频API
-          const response = await createVideo(formData)
+          const response = await videoApi.createVideo(formData)
           
           if (response.code === 200) {
             ElMessage.success('新增视频成功')
@@ -487,7 +532,7 @@ export default {
           }
         } else {
           // 调用更新视频API
-          const response = await updateVideo(videoForm.id, formData)
+          const response = await videoApi.updateVideo(videoForm.id, formData)
           
           if (response.code === 200) {
             ElMessage.success('编辑视频成功')
@@ -525,7 +570,7 @@ export default {
         console.log('开始删除视频，ID:', id)
         
         // 调用删除视频API
-        const response = await deleteVideo(id)
+        const response = await videoApi.deleteVideo(id)
         console.log('删除视频API响应:', response)
         
         if (response.code === 200) {
@@ -556,7 +601,7 @@ export default {
         console.log('开始切换视频状态，ID:', id, '新状态:', status)
         
         // 调用更新视频API，只更新状态字段
-        const response = await updateVideo(id, { status: status })
+        const response = await videoApi.updateVideo(id, { status: status })
         console.log('切换视频状态API响应:', response)
         
         if (response.code === 200) {
@@ -591,7 +636,7 @@ export default {
         const formData = new FormData()
         formData.append('cover', file)
         
-        const response = await uploadCover(formData)
+        const response = await videoApi.uploadCover(formData)
         
         // 关键修复：在设置coverUrl前就处理URL，避免后续模板中的转换导致闪烁
         let coverUrl = response.data.url || ''
@@ -667,7 +712,7 @@ export default {
         formData.append('file', uploadData.file)
         
         // 调用真实的视频上传API
-        const response = await uploadVideo(formData)
+        const response = await videoApi.uploadVideo(formData)
         
         if (response.code === 200 && response.data && response.data.url) {
           videoForm.videoUrl = response.data.url
@@ -841,9 +886,9 @@ export default {
     }
     
     // 组件挂载时加载数据
-    onMounted(() => {
-      // 先加载分类数据
-      loadCategories()
+    onMounted(async () => {
+      // 先加载分类数据，确保等待完成
+      await loadCategories()
       // 再加载视频列表
       loadVideoList()
     })
@@ -1007,5 +1052,24 @@ export default {
 .el-image{
   width: 80px;
   height: 60px!important;
+}
+
+/* 让下拉框自适应宽度 */
+.auto-width-select {
+  /* 基础宽度设置 */
+  min-width: 120px;
+}
+
+/* 下拉菜单自适应内容宽度 */
+.auto-width-select .el-select-dropdown {
+  min-width: 100%;
+  width: auto;
+  white-space: nowrap;
+}
+
+/* 确保下拉菜单项不会换行 */
+.auto-width-select .el-select-dropdown__item {
+  white-space: nowrap;
+  overflow: visible;
 }
 </style>
