@@ -94,15 +94,19 @@ class App {
       const { filename } = req.params;
       const path = require('path');
       const fs = require('fs');
-      const videoPath = path.join(__dirname, '../public/uploads/video', filename);
+      
+      // 构建绝对路径，确保路径正确
+      const videoPath = path.resolve(__dirname, '../public/uploads/video', filename);
+      console.log('尝试访问视频文件:', videoPath);
       
       // 首先检查文件是否存在
       fs.stat(videoPath, (err, stats) => {
         if (err) {
-          console.error('视频文件不存在:', filename, err);
+          console.error('视频文件不存在或无法访问:', filename, err);
           return res.status(404).json({
             success: false,
-            message: '视频文件不存在'
+            message: '视频文件不存在',
+            error: err.message
           });
         }
         
@@ -110,74 +114,26 @@ class App {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
-        res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
+        res.setHeader('Accept-Ranges', 'bytes');
         res.setHeader('Content-Type', 'video/mp4');
         
-        // 处理范围请求
-        const range = req.headers.range;
-        if (range) {
-          try {
-            // 解析范围请求
-            const parts = range.replace(/bytes=/, "").split("-");
-            const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
-            
-            // 创建流
-            const stream = fs.createReadStream(videoPath, { start, end });
-            
-            // 设置响应头
-            res.writeHead(206, {
-              'Content-Range': `bytes ${start}-${end}/${stats.size}`,
-              'Accept-Ranges': 'bytes',
-              'Content-Length': end - start + 1
-            });
-            
-            // 错误处理
-            stream.on('error', (streamErr) => {
-              console.error('视频流错误:', streamErr);
-              if (!res.headersSent) {
-                res.status(500).json({
-                  success: false,
-                  message: '视频流读取失败'
-                });
-              }
-            });
-            
-            // 发送流
-            stream.pipe(res);
-          } catch (e) {
-            console.error('范围请求处理错误:', e);
-            // 回退到完整文件发送
-            sendFullVideo(res, videoPath);
+        // 尝试直接发送文件，使用express的sendFile方法
+        console.log('发送视频文件:', filename, '大小:', stats.size);
+        res.sendFile(videoPath, (sendErr) => {
+          if (sendErr) {
+            console.error('发送视频文件失败:', filename, sendErr);
+            if (!res.headersSent) {
+              res.status(500).json({
+                success: false,
+                message: '视频文件发送失败',
+                error: sendErr.message
+              });
+            }
           }
-        } else {
-          // 直接发送完整文件
-          sendFullVideo(res, videoPath);
-        }
+        });
       });
     });
-    
-    // 辅助函数：发送完整视频文件
-    function sendFullVideo(res, videoPath) {
-      const fs = require('fs');
-      
-      // 创建读取流
-      const stream = fs.createReadStream(videoPath);
-      
-      // 错误处理
-      stream.on('error', (err) => {
-        console.error('发送视频文件失败:', err);
-        if (!res.headersSent) {
-          res.status(500).json({
-            success: false,
-            message: '视频文件读取失败'
-          });
-        }
-      });
-      
-      // 发送流
-      stream.pipe(res);
-    }
     
     // 根路径
     this.app.get('/', (req, res) => {
