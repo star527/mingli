@@ -3,7 +3,7 @@
   <!-- 用户信息头部 -->
   <view class="user-header" bindtap="navigateToUserInfo">
     <view class="avatar-container">
-      <image class="avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <image class="avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.webp'}}" mode="aspectFill"></image>
       <view class="vip-badge" wx:if="{{userInfo.isVip}}">
         <text>VIP</text>
       </view>
