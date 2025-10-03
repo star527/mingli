@@ -1,0 +1,69 @@
+/* pages/splash/splash.wxss */
+.splash-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  position: relative;
+}
+
+.logo-container {
+  text-align: center;
+  animation: fadeInUp 1s ease-out;
+}
+
+.logo {
+  width: 180rpx;
+  height: 180rpx;
+  margin-bottom: 40rpx;
+  border-radius: 20rpx;
+  background: #fff;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+  padding: 20rpx;
+}
+
+.app-name {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  letter-spacing: 2rpx;
+}
+
+.app-slogan {
+  font-size: 28rpx;
+  color: #666;
+  opacity: 0.9;
+}
+
+.version {
+  position: absolute;
+  bottom: 60rpx;
+  font-size: 24rpx;
+  color: #999;
+  opacity: 0.8;
+  animation: fadeIn 1.5s ease-out;
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

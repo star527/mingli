@@ -1,0 +1,9 @@
+<!-- pages/splash/splash.wxml -->
+<view class="splash-container">
+  <view class="logo-container">
+    <image class="logo" src="/assets/images/logo.png" mode="aspectFit"></image>
+    <view class="app-name">AI算命八字排盘</view>
+    <view class="app-slogan">专业的命理分析工具</view>
+  </view>
+  <view class="version">版本 1.0.0</view>
+</view>
