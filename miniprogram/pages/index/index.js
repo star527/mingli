@@ -12,21 +12,21 @@ Page({
         type: 'video',
         title: '八字入门基础教程',
         description: '从零基础开始学习八字排盘基础知识',
-        image: '/assets/images/recommend1.webp'
+        image: 'https://star.socx.vip/mingli/recommend1.webp'
       },
       {
         id: '2',
         type: 'video',
         title: '五行相生相克详解',
         description: '深入了解五行之间的生克关系和应用',
-        image: '/assets/images/recommend2.webp'
+        image: 'https://star.socx.vip/mingli/recommend2.webp'
       },
       {
         id: '3',
         type: 'article',
         title: '2024年运势预测',
         description: '根据八字看2024年各方面运势走向',
-        image: '/assets/images/recommend3.webp'
+        image: 'https://star.socx.vip/mingli/recommend3.webp'
       }
     ],
     newsList: [

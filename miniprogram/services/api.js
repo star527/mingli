@@ -12,8 +12,16 @@ class ApiService {
    */
   request(options = {}) {
     const token = wx.getStorageSync('token') || app.globalData.token;
+    const timeout = options.timeout || 8000;
     
     return new Promise((resolve, reject) => {
+      // 设置超时定时器
+      const timeoutId = setTimeout(() => {
+        const timeoutError = new Error('请求超时');
+        timeoutError.errMsg = 'request:fail timeout';
+        reject(timeoutError);
+      }, timeout);
+      
       wx.request({
         url: this.baseUrl + options.url,
         method: options.method || 'GET',
@@ -23,7 +31,9 @@ class ApiService {
           'Authorization': token ? `Bearer ${token}` : '',
           ...options.header
         },
+        timeout: timeout,
         success: res => {
+          clearTimeout(timeoutId); // 清除超时定时器
           // 处理统一错误
           if (res.statusCode === 401) {
             // 未授权，清除token并跳转到登录页
@@ -50,6 +60,7 @@ class ApiService {
           }
         },
         fail: err => {
+          clearTimeout(timeoutId); // 清除超时定时器
           console.error('API请求失败:', err);
           wx.showToast({
             title: '网络请求失败，请检查网络',
@@ -106,4 +117,4 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+module.exports = new ApiService();

@@ -64,6 +64,7 @@ Page({
       data: {
         code: code
       },
+      timeout: 5000, // 设置5秒超时
       success: res => {
         wx.hideLoading();
         
@@ -83,19 +84,87 @@ Page({
             url: '/pages/index/index'
           });
         } else {
-          wx.showToast({
-            title: res.data.message || '登录失败，请重试',
-            icon: 'none'
-          });
+          wx.hideLoading();
+          this.handleLoginFail('登录失败，请重试');
         }
       },
       fail: err => {
         wx.hideLoading();
-        wx.showToast({
-          title: '服务器连接失败',
-          icon: 'none'
-        });
         console.error('请求登录失败:', err);
+        this.handleLoginFail('服务器连接失败或超时');
+      }
+    });
+  },
+  
+  /**
+   * 处理登录失败
+   */
+  handleLoginFail: function(message) {
+    wx.showModal({
+      title: '登录提示',
+      content: `${message}\n\n是否使用模拟登录？`,
+      showCancel: true,
+      cancelText: '重试',
+      confirmText: '模拟登录',
+      success: (res) => {
+        if (res.confirm) {
+          this.mockLogin();
+        }
+      }
+    });
+  },
+  
+  /**
+   * 模拟登录
+   */
+  mockLogin: function() {
+    wx.showLoading({
+      title: '模拟登录中...',
+    });
+    
+    // 模拟网络延迟
+    setTimeout(() => {
+      // 生成模拟的token和用户信息
+      const mockToken = 'mock_token_' + Date.now();
+      const mockUserInfo = {
+        id: 'mock_user_1',
+        nickname: '测试用户',
+        avatar: 'https://thirdwx.qlogo.cn/mmopen/vi_32/Q0j4TwGTfTLLo87ibq7h5jO1tE43iaJxYV68PzNibP16vQqicNia4p8nibx4Y2s8H1t5mXs/132',
+        membership: '普通会员',
+        createdAt: new Date().toISOString()
+      };
+      
+      // 保存模拟数据到全局和本地存储
+      app.globalData.token = mockToken;
+      app.globalData.userInfo = mockUserInfo;
+      
+      wx.setStorageSync('token', mockToken);
+      wx.setStorageSync('userInfo', mockUserInfo);
+      
+      wx.hideLoading();
+      
+      // 模拟登录成功，跳转到首页
+      wx.switchTab({
+        url: '/pages/index/index'
+      });
+    }, 1000);
+  },
+  
+  /**
+   * 开发模式：隐藏的模拟登录按钮处理函数
+   * 长按微信登录按钮可以直接进入模拟登录
+   */
+  handleLongPressLogin: function() {
+    // 开发模式下，可以通过长按登录按钮直接进入模拟登录
+    console.log('长按登录按钮，进入模拟登录');
+    wx.showModal({
+      title: '开发模式',
+      content: '是否使用模拟登录？',
+      showCancel: true,
+      success: (res) => {
+        if (res.confirm) {
+          this.mockLogin();
+        }
       }
     });
   },

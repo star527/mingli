@@ -7,6 +7,7 @@ Page({
    * 页面的初始数据
    */
   data: {
+    name: '', // 姓名
     gender: 1, // 默认选择男
     birthDate: '', // 出生日期
     birthTime: '', // 出生时间
@@ -74,6 +75,15 @@ Page({
       birthTime: e.detail.value
     });
   },
+  
+  /**
+   * 姓名输入
+   */
+  onNameInput: function(e) {
+    this.setData({
+      name: e.detail.value
+    });
+  },
 
   /**
    * 计算八字
@@ -95,15 +105,27 @@ Page({
       return;
     }
     
-    util.showLoading('正在排盘中...');
+    wx.showLoading({
+      title: '正在排盘中...',
+    });
     
     try {
       // 解析日期和时间
       const [year, month, day] = this.data.birthDate.split('-').map(Number);
       const [hour, minute] = this.data.birthTime.split(':').map(Number);
       
+      // 验证姓名
+      if (!this.data.name || this.data.name.trim() === '') {
+        wx.showToast({
+          title: '请输入姓名',
+          icon: 'none'
+        });
+        return;
+      }
+      
       // 调用八字排盘API
       const params = {
+        name: this.data.name.trim(),
         birthYear: year,
         birthMonth: month,
         birthDay: day,
@@ -122,13 +144,13 @@ Page({
           url: '/pages/bazi/detail'
         });
       } else {
-        util.showToast(result.message || '排盘失败，请重试', 'error');
+        wx.showToast({ title: result.message || '排盘失败，请重试', icon: 'none' });
       }
     } catch (error) {
       console.error('计算八字失败:', error);
-      util.showToast('排盘失败，请检查网络后重试', 'error');
+      wx.showToast({ title: '排盘失败，请检查网络后重试', icon: 'none' });
     } finally {
-      util.hideLoading();
+      wx.hideLoading();
     }
   },
 
@@ -137,26 +159,81 @@ Page({
    */
   loadHistoryRecords: async function() {
     try {
-      const result = await baziService.getBaziRecords(1, 10);
-      
-      if (result.success && result.data) {
-        this.setData({
-          historyList: result.data.records
-        });
-      }
-    } catch (error) {
-      console.error('加载历史记录失败:', error);
-      // 使用模拟数据作为备用
-      this.setData({
-        historyList: this.getMockHistoryData()
+      // 显示加载提示
+      wx.showLoading({
+        title: '加载中...',
       });
+      
+      // 检查登录状态
+      const token = wx.getStorageSync('token');
+      
+      // 无论是否登录都尝试调用API，但设置超时处理
+      try {
+        // 已登录，调用API
+        const result = await baziService.getBaziRecords(1, 10);
+        
+        if (result && result.success && result.data && result.data.records) {
+          // 成功获取到数据
+          this.setData({
+            historyList: result.data.records,
+            hasData: result.data.records.length > 0
+          });
+          console.log('成功加载八字记录:', result.data.records.length, '条');
+        } else {
+          // API返回但数据不符合预期，使用模拟数据
+          console.log('API返回数据异常，使用模拟数据');
+          this.showMockData();
+        }
+      } catch (error) {
+        console.error('API调用失败，使用模拟数据:', error);
+        // 调用失败，使用模拟数据
+        this.showMockData();
+      }
+    } finally {
+      // 无论如何都隐藏加载提示
+      wx.hideLoading();
     }
+  },
+  
+  /**
+   * 显示模拟数据
+   */
+  showMockData: function() {
+    const mockData = this.getMockHistoryData();
+    this.setData({
+      historyList: mockData,
+      hasData: mockData.length > 0,
+      isUsingMockData: true
+    });
+    
+    // 显示一个提示，告知用户当前使用的是模拟数据
+    wx.showToast({
+      title: '当前使用模拟数据',
+      icon: 'none',
+      duration: 2000
+    });
   },
 
   /**
    * 查看全部记录
    */
   viewAllRecords: function() {
+    // 检查登录状态
+    const token = wx.getStorageSync('token');
+    if (!token) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录查看完整历史记录',
+        showCancel: false,
+        success: () => {
+          wx.navigateTo({
+            url: '/pages/login/index'
+          });
+        }
+      });
+      return;
+    }
+    
     // 这里可以跳转到历史记录列表页
     wx.navigateTo({
       url: '/pages/common/list?type=bazi_history'
@@ -169,12 +246,30 @@ Page({
   viewRecordDetail: async function(e) {
     const recordId = e.currentTarget.dataset.id;
     
-    util.showLoading('加载中...');
+    // 检查登录状态
+    const token = wx.getStorageSync('token');
+    if (!token) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录查看详情',
+        showCancel: false,
+        success: () => {
+          wx.navigateTo({
+            url: '/pages/login/index'
+          });
+        }
+      });
+      return;
+    }
+    
+    wx.showLoading({
+      title: '加载中...',
+    });
     
     try {
       const result = await baziService.getBaziRecordDetail(recordId);
       
-      if (result.success && result.data) {
+      if (result && result.success && result.data) {
         // 保存详情到全局
         app.globalData.currentBaziResult = result.data;
         
@@ -183,13 +278,13 @@ Page({
           url: '/pages/bazi/detail?recordId=' + recordId
         });
       } else {
-        util.showToast('获取记录详情失败', 'error');
+        wx.showToast({ title: '获取记录详情失败', icon: 'none' });
       }
     } catch (error) {
       console.error('获取记录详情失败:', error);
-      util.showToast('获取记录详情失败，请重试', 'error');
+      wx.showToast({ title: '获取记录详情失败，请重试', icon: 'none' });
     } finally {
-      util.hideLoading();
+      wx.hideLoading();
     }
   },
 
@@ -198,6 +293,22 @@ Page({
    */
   toggleFavorite: async function(e) {
     e.stopPropagation(); // 阻止冒泡，避免触发查看详情
+    
+    // 检查登录状态
+    const token = wx.getStorageSync('token');
+    if (!token) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录',
+        showCancel: false,
+        success: () => {
+          wx.navigateTo({
+            url: '/pages/login/index'
+          });
+        }
+      });
+      return;
+    }
     
     const recordId = e.currentTarget.dataset.id;
     
@@ -267,28 +378,40 @@ Page({
   getMockHistoryData: function() {
     return [
       {
-        id: 'mock-1',
-        birthDate: '1990-01-01',
-        birthTime: '12:00',
-        isFavorite: true,
-        pillars: {
-          year: ['甲', '子'],
-          month: ['丙', '寅'],
-          day: ['戊', '午'],
-          hour: ['庚', '申']
-        }
+        id: 'mock-001',
+        birthYear: 1990,
+        birthMonth: 1,
+        birthDay: 1,
+        birthHour: 12,
+        gender: 1,
+        created_at: '2024-01-15 14:30:00',
+        is_favorite: true,
+        displayDate: '1990年1月1日 12:00',
+        displayInfo: '庚午年 戊寅月 戊子日 戊午时'
       },
       {
-        id: 'mock-2',
-        birthDate: '1985-05-15',
-        birthTime: '08:30',
-        isFavorite: false,
-        pillars: {
-          year: ['乙', '丑'],
-          month: ['丁', '巳'],
-          day: ['己', '未'],
-          hour: ['辛', '酉']
-        }
+        id: 'mock-002',
+        birthYear: 1985,
+        birthMonth: 5,
+        birthDay: 20,
+        birthHour: 8,
+        gender: 0,
+        created_at: '2024-01-10 09:15:00',
+        is_favorite: false,
+        displayDate: '1985年5月20日 8:00',
+        displayInfo: '乙丑年 辛巳月 丁巳日 甲辰时'
+      },
+      {
+        id: 'mock-003',
+        birthYear: 2000,
+        birthMonth: 10,
+        birthDay: 1,
+        birthHour: 20,
+        gender: 1,
+        created_at: '2024-01-05 18:45:00',
+        is_favorite: true,
+        displayDate: '2000年10月1日 20:00',
+        displayInfo: '庚辰年 乙酉月 辛酉日 戊戌时'
       }
     ];
   }

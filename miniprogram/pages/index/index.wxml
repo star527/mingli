@@ -3,13 +3,13 @@
   <!-- 顶部轮播图 -->
   <swiper class="banner" indicator-dots="true" autoplay="true" interval="5000" duration="1000">
     <swiper-item>
-      <image src="/assets/images/banner1.webp" mode="aspectFill" class="banner-image"></image>
+      <image src="https://star.socx.vip/mingli/banner1.webp" mode="aspectFill" class="banner-image"></image>
     </swiper-item>
     <swiper-item>
-      <image src="/assets/images/banner2.webp" mode="aspectFill" class="banner-image"></image>
+      <image src="https://star.socx.vip/mingli/banner2.webp" mode="aspectFill" class="banner-image"></image>
     </swiper-item>
     <swiper-item>
-      <image src="/assets/images/banner3.webp" mode="aspectFill" class="banner-image"></image>
+      <image src="https://star.socx.vip/mingli/banner3.webp" mode="aspectFill" class="banner-image"></image>
     </swiper-item>
   </swiper>
 

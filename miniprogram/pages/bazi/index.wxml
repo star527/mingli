@@ -4,6 +4,12 @@
   <view class="bazi-form">
     <view class="form-title">八字排盘</view>
     
+    <!-- 姓名输入 -->
+    <view class="form-group">
+      <view class="form-label">姓名</view>
+      <input class="name-input" type="text" placeholder="请输入姓名" value="{{name}}" bindinput="onNameInput" placeholder-class="placeholder-style" maxlength="20" />
+    </view>
+    
     <!-- 性别选择 -->
     <view class="form-group">
       <view class="form-label">性别</view>

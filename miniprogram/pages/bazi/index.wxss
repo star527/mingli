@@ -1,4 +1,19 @@
 /* pages/bazi/index.wxss */
+:root {
+  --primary-color: #8c4356; /* 传统中国红 */
+  --primary-light: #b35a6c;
+  --secondary-color: #d3a335; /* 金色 */
+  --background-color: #f7f0e8; /* 米黄色背景 */
+  --text-primary: #333333;
+  --text-regular: #555555;
+  --text-secondary: #888888;
+  --border-color: #e0d4c0;
+  --border-light: #f0e4d4;
+  --border-extra-light: #f5efe6;
+  --danger-color: #ff4d4f;
+  --highlight-color: #8c4356;
+}
+
 .container {
   padding: 30rpx;
   background-color: var(--background-color);
@@ -8,29 +23,56 @@
 /* 排盘表单样式 */
 .bazi-form {
   background-color: #fff;
-  border-radius: 15rpx;
-  padding: 30rpx;
+  border-radius: 20rpx;
+  padding: 40rpx;
   margin-bottom: 30rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
 }
 
 .form-title {
-  font-size: 36rpx;
+  font-size: 40rpx;
   font-weight: bold;
   text-align: center;
-  color: var(--text-primary);
+  color: var(--primary-color);
   margin-bottom: 40rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid var(--border-color);
 }
 
 .form-group {
-  margin-bottom: 30rpx;
+  margin-bottom: 36rpx;
 }
 
 .form-label {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: var(--text-regular);
-  margin-bottom: 15rpx;
+  margin-bottom: 18rpx;
   display: block;
+  font-weight: 500;
+}
+
+/* 姓名输入框样式 */
+.name-input {
+  width: 100%;
+  height: 88rpx;
+  border: 2rpx solid var(--border-color);
+  border-radius: 10rpx;
+  padding: 0 24rpx;
+  font-size: 32rpx;
+  background-color: #fff;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.name-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3rpx rgba(140, 67, 86, 0.1);
+}
+
+.placeholder-style {
+  color: #c9c9c9;
+  font-size: 30rpx;
 }
 
 /* 性别选择器 */
@@ -55,152 +97,179 @@
   background-color: var(--primary-color);
 }
 
-/* 日期时间选择器 */
+/* 日期和时间选择器 */
 .date-picker, .time-picker {
-  border: 1px solid var(--border-color);
-  border-radius: 8rpx;
-  padding: 0 20rpx;
+  border: 2rpx solid var(--border-color);
+  border-radius: 10rpx;
+  background-color: #fff;
 }
 
 .picker {
-  height: 80rpx;
-  line-height: 80rpx;
-  color: var(--text-regular);
-  font-size: 30rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.picker::after {
-  content: '>';
-  color: var(--text-secondary);
+  padding: 24rpx;
   font-size: 32rpx;
-  font-weight: bold;
+  color: var(--text-primary);
+  position: relative;
 }
 
 /* 计算按钮 */
 .calculate-btn {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
   color: #fff;
-  font-size: 32rpx;
   text-align: center;
-  padding: 25rpx 0;
-  border-radius: 10rpx;
+  padding: 28rpx 0;
+  border-radius: 12rpx;
+  font-size: 34rpx;
+  font-weight: bold;
   margin-top: 40rpx;
-  font-weight: 500;
+  box-shadow: 0 6rpx 16rpx rgba(140, 67, 86, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.calculate-btn:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
 }
 
 .calculate-btn:active {
-  opacity: 0.8;
+  transform: translateY(2rpx);
+  box-shadow: 0 3rpx 8rpx rgba(140, 67, 86, 0.3);
 }
 
-/* 历史记录样式 */
+.calculate-btn:active:before {
+  left: 100%;
+}
+
+/* 历史记录部分 */
 .history-section {
   background-color: #fff;
-  border-radius: 15rpx;
-  padding: 30rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  border-radius: 20rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
+  padding-bottom: 24rpx;
+  border-bottom: 2rpx solid var(--border-color);
+  margin-bottom: 30rpx;
 }
 
 .section-title {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: bold;
-  color: var(--text-primary);
+  color: var(--primary-color);
 }
 
 .view-all {
   display: flex;
   align-items: center;
-  color: var(--text-secondary);
-  font-size: 26rpx;
+  color: var(--text-regular);
+  font-size: 28rpx;
 }
 
 .arrow {
-  margin-left: 5rpx;
+  font-size: 24rpx;
+  margin-left: 8rpx;
 }
 
 /* 历史记录列表 */
 .history-list {
-  max-height: 600rpx;
-  overflow-y: auto;
+  margin-top: 10rpx;
 }
 
 .history-item {
-  padding: 20rpx 0;
-  border-bottom: 1px solid var(--border-light);
-  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
 }
 
 .history-item:last-child {
   border-bottom: none;
 }
 
-.record-info {
-  display: flex;
-  margin-bottom: 10rpx;
+.history-item:active {
+  background-color: rgba(140, 67, 86, 0.05);
 }
 
-.record-date {
-  font-size: 28rpx;
-  color: var(--text-primary);
+.record-info {
+  flex: 1;
   margin-right: 20rpx;
 }
 
+.record-date {
+  display: block;
+  font-size: 30rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
 .record-time {
+  display: block;
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--text-regular);
+  margin-top: 4rpx;
 }
 
 .record-pillars {
+  flex: 2;
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-around;
+  margin: 0 20rpx;
 }
 
 .pillar-item {
-  background-color: var(--border-extra-light);
-  color: var(--text-regular);
-  padding: 8rpx 15rpx;
-  border-radius: 5rpx;
-  margin-right: 10rpx;
-  margin-bottom: 10rpx;
-  font-size: 26rpx;
+  font-size: 28rpx;
+  padding: 8rpx 16rpx;
+  background-color: var(--background-color);
+  border-radius: 8rpx;
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 .record-actions {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
-  flex-direction: column;
   align-items: center;
 }
 
 .action-icon {
-  font-size: 28rpx;
-  margin-bottom: 10rpx;
+  font-size: 36rpx;
+  margin-left: 20rpx;
+  transition: transform 0.2s ease;
+}
+
+.action-icon:active {
+  transform: scale(1.2);
 }
 
 .favorite {
-  color: #E6A23C;
+  color: #ffb800;
 }
 
 .delete {
-  color: var(--danger-color);
+  color: #999;
 }
 
-/* 空记录提示 */
+.delete:active {
+  color: #ff4d4f;
+}
+
 .empty-history {
   text-align: center;
   padding: 60rpx 0;
-  color: var(--text-secondary);
+  color: var(--text-regular);
   font-size: 28rpx;
 }
